@@ -1,0 +1,14 @@
+{
+  "name": "tripcraft",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace @tripcraft/frontend",
+    "dev:backend": "npm run dev --workspace @tripcraft/backend",
+    "build": "npm run build --workspaces"
+  }
+}
