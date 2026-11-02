@@ -1,17 +1,166 @@
 @import "tailwindcss";
 
 :root {
-  font-family:
+  color-scheme: light;
+
+  --tripcraft-primary-dark: #102c35;
+  --tripcraft-primary-teal: #0d9488;
+  --tripcraft-secondary-teal: #0f766e;
+  --tripcraft-mint-background: #ddf5ea;
+  --tripcraft-main-background: #f7f8f5;
+  --tripcraft-surface: #ffffff;
+  --tripcraft-primary-text: #172b32;
+  --tripcraft-secondary-text: #64748b;
+  --tripcraft-border: #e2e8e6;
+  --tripcraft-success: #16a34a;
+  --tripcraft-warning: #f59e0b;
+  --tripcraft-error: #dc2626;
+  --tripcraft-success-text: #166534;
+  --tripcraft-warning-text: #854d0e;
+  --tripcraft-error-text: #b91c1c;
+
+  --tripcraft-font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+
+  --tripcraft-text-display: 3.5rem;
+  --tripcraft-text-page-heading: 2.5rem;
+  --tripcraft-text-section-heading: 1.875rem;
+  --tripcraft-text-subheading: 1.25rem;
+  --tripcraft-text-body: 1rem;
+  --tripcraft-text-small-label: 0.875rem;
+  --tripcraft-text-caption: 0.75rem;
+
+  --tripcraft-space-unit: 0.25rem;
+  --tripcraft-space-page-gutter: 1.25rem;
+  --tripcraft-radius-control: 0.5rem;
+  --tripcraft-radius-card: 0.75rem;
+  --tripcraft-radius-badge: 0.375rem;
+  --tripcraft-shadow-subtle: 0 1px 3px rgb(16 44 53 / 8%);
+  --tripcraft-shadow-card: 0 8px 24px rgb(16 44 53 / 10%);
+  --tripcraft-transition-fast: 150ms;
+  --tripcraft-transition-standard: 200ms;
+  --tripcraft-container-sm: 32rem;
+  --tripcraft-container-md: 48rem;
+  --tripcraft-container-lg: 64rem;
+  --tripcraft-container-wide: 80rem;
+
+  font-family: var(--tripcraft-font-sans);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+@theme inline {
+  --color-primary-dark: var(--tripcraft-primary-dark);
+  --color-primary-teal: var(--tripcraft-primary-teal);
+  --color-secondary-teal: var(--tripcraft-secondary-teal);
+  --color-mint-background: var(--tripcraft-mint-background);
+  --color-main-background: var(--tripcraft-main-background);
+  --color-surface: var(--tripcraft-surface);
+  --color-primary-text: var(--tripcraft-primary-text);
+  --color-secondary-text: var(--tripcraft-secondary-text);
+  --color-border: var(--tripcraft-border);
+  --color-success: var(--tripcraft-success);
+  --color-warning: var(--tripcraft-warning);
+  --color-error: var(--tripcraft-error);
+  --color-success-text: var(--tripcraft-success-text);
+  --color-warning-text: var(--tripcraft-warning-text);
+  --color-error-text: var(--tripcraft-error-text);
+
+  --font-sans: var(--tripcraft-font-sans);
+
+  --text-display: var(--tripcraft-text-display);
+  --text-display--line-height: 1.1;
+  --text-display--font-weight: 700;
+  --text-page-heading: var(--tripcraft-text-page-heading);
+  --text-page-heading--line-height: 1.2;
+  --text-page-heading--font-weight: 700;
+  --text-section-heading: var(--tripcraft-text-section-heading);
+  --text-section-heading--line-height: 1.25;
+  --text-section-heading--font-weight: 700;
+  --text-subheading: var(--tripcraft-text-subheading);
+  --text-subheading--line-height: 1.4;
+  --text-body: var(--tripcraft-text-body);
+  --text-body--line-height: 1.5;
+  --text-small-label: var(--tripcraft-text-small-label);
+  --text-small-label--line-height: 1.4;
+  --text-caption: var(--tripcraft-text-caption);
+  --text-caption--line-height: 1.4;
+
+  --spacing: var(--tripcraft-space-unit);
+  --spacing-page-gutter: var(--tripcraft-space-page-gutter);
+  --radius-control: var(--tripcraft-radius-control);
+  --radius-card: var(--tripcraft-radius-card);
+  --radius-badge: var(--tripcraft-radius-badge);
+  --shadow-subtle: var(--tripcraft-shadow-subtle);
+  --shadow-card: var(--tripcraft-shadow-card);
+  --container-content-sm: var(--tripcraft-container-sm);
+  --container-content-md: var(--tripcraft-container-md);
+  --container-content-lg: var(--tripcraft-container-lg);
+  --container-content: var(--tripcraft-container-wide);
+  --breakpoint-tablet: 48rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 20rem;
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 20rem;
   min-height: 100vh;
+  background: var(--tripcraft-main-background);
+  color: var(--tripcraft-primary-text);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+.transition-standard {
+  transition-property:
+    background-color, border-color, color, box-shadow, opacity, transform;
+  transition-timing-function: ease;
+  transition-duration: var(--tripcraft-transition-standard);
+}
+
+.transition-fast {
+  transition-duration: var(--tripcraft-transition-fast);
+  transition-property:
+    background-color, border-color, color, box-shadow, opacity, transform;
+  transition-timing-function: ease;
+}
+
+@media (max-width: 40rem) {
+  :root {
+    --tripcraft-text-display: 2.75rem;
+    --tripcraft-text-page-heading: 2rem;
+    --tripcraft-text-section-heading: 1.5rem;
+    --tripcraft-space-page-gutter: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

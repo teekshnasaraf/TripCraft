@@ -9,13 +9,20 @@ services or implemented features.
 The frontend is a React + TypeScript application built with Vite. Its current
 entry point is `src/main.tsx`; `src/app/providers.tsx` centralises TanStack
 Query, and `src/app/router.tsx` owns the React Router configuration. Shared
-styling uses Tailwind CSS. `src/services/apiClient.ts` provides the Axios
-instance configured from `VITE_API_BASE_URL`.
+styling uses Tailwind CSS v4 with semantic CSS custom properties mapped through
+the CSS-first `@theme inline` directive in `src/styles/index.css`. The token
+system covers the TripCraft colour palette, typography, spacing, radii,
+shadows, transitions, and container widths. `src/services/apiClient.ts`
+provides the Axios instance configured from `VITE_API_BASE_URL`.
 
 The `features/` tree is reserved for domain-oriented UI modules (auth, trips,
 flights, hotels, activities, itinerary, budget, and profile). Shared components,
 hooks, types, and utilities should remain separate from feature-specific code.
-The only current screen is a minimal TripCraft starter page.
+Reusable presentational components live in `src/components/ui/`; loading and
+feedback components live in `src/components/common/`; shared site chrome is in
+`src/components/layout/`. The only product screen remains a minimal TripCraft
+starter page. A separate `/dev/design-system` route is available in development
+for visual inspection and is omitted from production builds.
 
 ## Backend architecture
 

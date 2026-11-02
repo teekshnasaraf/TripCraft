@@ -6,9 +6,10 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Current project status
 
-- **Current phase:** Phase 1 – Project Foundation and Frontend Setup.
-- **Overall status:** Phase 1 foundation, local verification, and remote
-  publication are complete. Phase 2 is the next development phase.
+- **Current phase:** Phase 1 – Project Foundation and Frontend Setup (design
+  system step complete).
+- **Overall status:** Phase 1 foundation and design system are implemented and
+  locally verified. Phase 2 is the next development phase.
 - **Booking model:** TripCraft will link users to external booking platforms;
   TripCraft will not process bookings or payments.
 - **Implemented product surface:** Minimal React starter screen and `GET
@@ -40,17 +41,33 @@ implementation; preserve the history rather than replacing the plan.
   - [x] Verify environment/build ignore rules and repository-local author and
     committer identity.
   - [x] Create the initial commit and publish it to the remote `main` branch.
-- **Relevant frontend modules:** `frontend/src/app/`, `components/`, `services/`,
-  `styles/`, and Vite/TypeScript configuration.
+  - [x] Define semantic colour, typography, spacing, radius, shadow, motion,
+    and container tokens using CSS variables and Tailwind CSS v4 `@theme`.
+  - [x] Implement typed shared buttons, inputs, cards, badges, containers, and
+    section headings.
+  - [x] Implement loading, skeleton, empty, and error feedback components.
+  - [x] Add responsive Navbar and Footer building blocks with accessible
+    navigation and placeholder legal links.
+  - [x] Add a development-only design-system preview route and component
+    showcase; confirm the route and preview chunk are excluded from production.
+  - [x] Inspect desktop and mobile layouts, keyboard-operable mobile navigation,
+    accessible labels/states, and browser console.
+  - [x] Pass frontend TypeScript and production build checks; add no dependencies.
+- **Relevant frontend modules:** `frontend/src/app/`, `components/ui/`,
+  `components/common/`, `components/layout/`, `components/dev/`, `styles/`,
+  `services/`, and Vite/TypeScript configuration.
 - **Relevant backend modules:** `backend/src/config/`, `middleware/`, `routes/`,
   `app.ts`, and `server.ts`.
 - **Required external integrations:** None. MongoDB is optional in development.
 - **Expected outcome:** Independently runnable frontend and backend; a working
-  health route; maintainable baseline documentation.
+  health route; maintainable baseline documentation and a responsive, reusable
+  frontend design system.
 - **Dependencies on previous phases:** None.
 - **Testing requirements:** npm dependency installation; strict frontend build;
   backend TypeScript build; frontend server startup; backend startup without
-  MongoDB; health and unknown-route HTTP checks; secret-ignore checks.
+  MongoDB; health and unknown-route HTTP checks; secret-ignore checks; design
+  preview route and component import checks; responsive browser inspection and
+  console-error check.
 - **Current status:** Complete.
 
 ### PHASE 2 – Authentication and Trip Management
@@ -234,7 +251,8 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Status summary
 
-- **Completed tasks:** Phase 1 code and documentation scaffolding listed above.
+- **Completed tasks:** Phase 1 foundation, documentation, and frontend design
+  system implementation and verification.
 - **In progress:** None.
 - **Pending tasks:** All work in Phases 2–8.
 
@@ -244,6 +262,9 @@ implementation; preserve the history rather than replacing the plan.
 | --- | --- |
 | Separate frontend and backend npm workspaces | Keeps browser and server responsibilities distinct while providing one root install/build. |
 | TypeScript strict mode | Catches structural errors before runtime in both applications. |
+| CSS variables with Tailwind CSS v4 `@theme inline` | Provides semantic design tokens while retaining the existing Vite plugin and avoiding a legacy Tailwind config. |
+| Shared UI, common, and layout component layers | Keeps generic controls, feedback states, and navigation reusable across future features. |
+| Development-only lazy design-system route | Allows component inspection without exposing the preview page or chunk in production builds. |
 | REST communication | Establishes a simple explicit boundary between frontend and backend. |
 | Mongoose connection is optional during local development | The health service and initial API can run before database credentials exist. |
 | Provider adapters normalise external offers | Planned integration isolates provider APIs and supports comparison against shared contracts. |
@@ -260,7 +281,12 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Known limitations
 
-- The frontend is a starter screen, not a landing page or planner.
+- The frontend root remains a starter screen, not a landing page or planner.
+- Navbar/footer product and legal destinations are placeholders until their
+  corresponding routes and policies exist.
+- The design preview is available only in the Vite development build.
+- No dedicated automated component-test runner is configured; this step was
+  validated with TypeScript/production builds and browser checks.
 - The API exposes only health status and does not persist trips.
 - MongoDB is not required by the health route; database availability is reported
   as configured/connected, but readiness is not a separate endpoint.
@@ -274,6 +300,7 @@ implementation; preserve the history rather than replacing the plan.
 | 2026-11-03 | Started Phase 1 repository foundation, frontend/backend scaffolding, and documentation. |
 | 2026-11-03 | Installed workspace dependencies (npm audit: 0 vulnerabilities); frontend and backend builds passed. Frontend returned HTTP 200; backend health returned HTTP 200 without MongoDB and an unknown route returned HTTP 404. |
 | 2026-11-03 | Published the Phase 1 foundation to GitHub `main` as commit `eb3d2da35366eedd655c34277b08e50a9ced939d`. |
+| 2026-11-03 | Completed the reusable frontend design system, semantic CSS/Tailwind v4 tokens, common and layout components, and a development-only preview. TypeScript and production builds passed; browser checks at 390, 768, and 1440 px found no horizontal overflow or console errors, and keyboard navigation worked. Production output excludes the preview route and chunk. No dependencies were added. |
 
 ## Next recommended implementation step
 
