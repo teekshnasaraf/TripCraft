@@ -20,9 +20,13 @@ flights, hotels, activities, itinerary, budget, and profile). Shared components,
 hooks, types, and utilities should remain separate from feature-specific code.
 Reusable presentational components live in `src/components/ui/`; loading and
 feedback components live in `src/components/common/`; shared site chrome is in
-`src/components/layout/`. The only product screen remains a minimal TripCraft
-starter page. A separate `/dev/design-system` route is available in development
-for visual inspection and is omitted from production builds.
+`src/components/layout/`. The `/` route renders the editorial landing page,
+assembled from focused components in `src/features/home/`. Its trip form
+validates preferences in the browser and explains that planning is not yet
+connected; it does not call an API or persist trip data. Account, comparison,
+optimisation, itinerary, and booking capabilities remain unimplemented. A
+separate `/dev/design-system` route is available in development for visual
+inspection and is omitted from production builds.
 
 ## Backend architecture
 
@@ -85,10 +89,13 @@ from provider-confirmed prices. Neither engine exists yet.
 ### Implemented
 
 1. A browser loads the React/Vite application.
-2. The router renders the starter screen.
+2. The router renders the informational homepage from `features/home/`.
 3. The backend starts; if configured, it first connects to MongoDB.
-4. `GET /api/health` returns service status and whether MongoDB is configured
-   and connected.
+4. The homepage form validates entered preferences locally and shows a
+   frontend-only “coming soon” response on valid submission.
+5. The backend health endpoint returns service status and whether MongoDB is
+   configured and connected.
+6. In development only, `/dev/design-system` renders the component preview.
 
 ### Planned
 

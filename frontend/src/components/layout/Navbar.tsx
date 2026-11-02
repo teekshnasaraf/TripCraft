@@ -1,5 +1,6 @@
 import { Compass, Menu, X } from "lucide-react";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Container } from "../ui/Container";
 
@@ -11,6 +12,8 @@ export interface NavigationItem {
 export interface NavbarProps {
   items?: readonly NavigationItem[];
   brandHref?: string;
+  actions?: ReactNode;
+  mobileActions?: ReactNode;
 }
 
 function NavigationLinks({
@@ -20,6 +23,8 @@ function NavigationLinks({
   items: readonly NavigationItem[];
   onNavigate?: () => void;
 }) {
+  const [activeHash, setActiveHash] = useState("");
+
   return items.map(({ label, href }) => {
     const baseClasses =
       "rounded-control px-3 py-2 text-small-label font-semibold transition-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-teal focus-visible:ring-offset-2";
@@ -30,8 +35,17 @@ function NavigationLinks({
         <a
           key={key}
           href={href}
-          onClick={onNavigate}
-          className={`${baseClasses} text-secondary-text hover:bg-main-background hover:text-primary-text`}
+          aria-current={activeHash === href ? "location" : undefined}
+          onClick={() => {
+            setActiveHash(href);
+            onNavigate?.();
+          }}
+          className={[
+            baseClasses,
+            activeHash === href
+              ? "bg-mint-background text-primary-dark"
+              : "text-secondary-text hover:bg-main-background hover:text-primary-text",
+          ].join(" ")}
         >
           {label}
         </a>
@@ -59,7 +73,12 @@ function NavigationLinks({
   });
 }
 
-export function Navbar({ items = [], brandHref = "/" }: NavbarProps) {
+export function Navbar({
+  items = [],
+  brandHref = "/",
+  actions,
+  mobileActions = actions,
+}: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -76,18 +95,25 @@ export function Navbar({ items = [], brandHref = "/" }: NavbarProps) {
           </span>
         </Link>
 
-        {items.length > 0 && (
+        {(items.length > 0 || actions) && (
           <>
             <nav
               aria-label="Primary navigation"
-              className="hidden items-center gap-1 tablet:flex"
+              className="ml-auto hidden items-center gap-1 tablet:flex"
             >
               <NavigationLinks items={items} />
             </nav>
+            {actions && (
+              <div className="hidden items-center gap-2 tablet:flex">
+                {actions}
+              </div>
+            )}
             <button
               type="button"
-              className="inline-flex size-10 items-center justify-center rounded-control text-primary-text transition-standard hover:bg-main-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-teal focus-visible:ring-offset-2 tablet:hidden"
-              aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+              className="inline-flex size-11 items-center justify-center rounded-control text-primary-text transition-standard hover:bg-main-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-teal focus-visible:ring-offset-2 tablet:hidden"
+              aria-label={
+                menuOpen ? "Close navigation menu" : "Open navigation menu"
+              }
               aria-expanded={menuOpen}
               aria-controls="mobile-primary-navigation"
               onClick={() => setMenuOpen((open) => !open)}
@@ -102,7 +128,7 @@ export function Navbar({ items = [], brandHref = "/" }: NavbarProps) {
         )}
       </Container>
 
-      {items.length > 0 && (
+      {(items.length > 0 || mobileActions) && (
         <nav
           id="mobile-primary-navigation"
           aria-label="Mobile primary navigation"
@@ -114,6 +140,14 @@ export function Navbar({ items = [], brandHref = "/" }: NavbarProps) {
               items={items}
               onNavigate={() => setMenuOpen(false)}
             />
+            {mobileActions && (
+              <div
+                className="mt-2 flex flex-wrap items-center gap-2 border-t border-border pt-3"
+                onClick={() => setMenuOpen(false)}
+              >
+                {mobileActions}
+              </div>
+            )}
           </div>
         </nav>
       )}

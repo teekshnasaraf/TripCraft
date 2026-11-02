@@ -24,8 +24,10 @@ reserve rooms, or take payment.
 Planned capabilities include trip management, travel search and comparison,
 AI-assisted itinerary generation, budget optimisation, saved trips, price
 tracking, and group planning. These features are not implemented yet. The
-current application is a working frontend and backend foundation with a single
-API health endpoint.
+application includes an informational landing page, a frontend-only trip-search
+form preview, and a backend foundation with a single API health endpoint. The
+form validates entered details locally but does not create, save, or search for
+a trip. No prices, availability, ratings, or booking results are displayed.
 
 ## Technology stack
 
@@ -73,6 +75,9 @@ TripCraft/
 │       ├── assets/
 │       ├── components/
 │       ├── features/
+│       │   └── home/
+│       │       ├── components/
+│       │       └── pages/
 │       ├── hooks/
 │       ├── lib/
 │       ├── services/

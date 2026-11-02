@@ -6,16 +6,17 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Current project status
 
-- **Current phase:** Phase 1 – Project Foundation and Frontend Setup (design
-  system step complete).
-- **Overall status:** Phase 1 foundation and design system are implemented and
-  locally verified. Phase 2 is the next development phase.
+- **Current phase:** Phase 1 – Project Foundation and Frontend Setup (Steps 1–3
+  complete).
+- **Overall status:** Foundation, reusable design system, and responsive landing
+  page are implemented and locally verified. Phase 2 has not started.
 - **Booking model:** TripCraft will link users to external booking platforms;
   TripCraft will not process bookings or payments.
-- **Implemented product surface:** Minimal React starter screen and `GET
-  /api/health`.
-- **Not implemented:** Authentication, trip planning, travel-provider calls,
-  AI, optimisation, maps, or persistent application data.
+- **Implemented product surface:** Informational landing page, locally
+  validated frontend-only trip-search preview, development design-system
+  preview, and `GET /api/health`.
+- **Not implemented:** Authentication, actual trip search or persistence,
+  travel-provider calls, AI, optimisation, maps, booking, or payment.
 
 ## Phase tracking
 
@@ -53,6 +54,24 @@ implementation; preserve the history rather than replacing the plan.
   - [x] Inspect desktop and mobile layouts, keyboard-operable mobile navigation,
     accessible labels/states, and browser console.
   - [x] Pass frontend TypeScript and production build checks; add no dependencies.
+  - [x] Build the `/` landing page from focused home-feature page and section
+    components without replacing the shared component architecture.
+  - [x] Add a responsive navbar with homepage anchors, mobile navigation, a
+    working trip-planning CTA, and a clear sign-in-coming-soon notice.
+  - [x] Add a controlled trip-search form with required-field, origin/destination,
+    date-order, traveller-count, and positive-budget validation.
+  - [x] Keep search submission frontend-only, preserve entered values, and
+    disclose that trip-planning functionality is not connected.
+  - [x] Add six editorial destination cards with descriptive alt text, lazy
+    loading, and image failure fallbacks; show no fabricated prices or ratings.
+  - [x] Add the planned four-step explainer, capability highlights, travel
+    styles, final CTA, and homepage footer.
+  - [x] Verify anchor navigation, CTAs, form errors and valid submission, mobile
+    menu behavior, imagery, and responsive layouts at 390, 768, and 1440 px.
+  - [x] Verify the development design-system route still works and remains
+    excluded from the production build.
+  - [x] Pass frontend TypeScript/production build and unaffected backend build;
+    no dependencies were added.
 - **Relevant frontend modules:** `frontend/src/app/`, `components/ui/`,
   `components/common/`, `components/layout/`, `components/dev/`, `styles/`,
   `services/`, and Vite/TypeScript configuration.
@@ -61,13 +80,16 @@ implementation; preserve the history rather than replacing the plan.
 - **Required external integrations:** None. MongoDB is optional in development.
 - **Expected outcome:** Independently runnable frontend and backend; a working
   health route; maintainable baseline documentation and a responsive, reusable
-  frontend design system.
+  frontend design system and informational homepage. Landing-page search and
+  product capabilities remain frontend-only/planned until their phases are
+  implemented.
 - **Dependencies on previous phases:** None.
 - **Testing requirements:** npm dependency installation; strict frontend build;
   backend TypeScript build; frontend server startup; backend startup without
   MongoDB; health and unknown-route HTTP checks; secret-ignore checks; design
-  preview route and component import checks; responsive browser inspection and
-  console-error check.
+  preview route and component import checks; homepage route, anchor/CTA and
+  form validation/submission checks; responsive browser inspection at 390, 768,
+  and 1440 px; image-load/fallback and console-error checks.
 - **Current status:** Complete.
 
 ### PHASE 2 – Authentication and Trip Management
@@ -251,8 +273,8 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Status summary
 
-- **Completed tasks:** Phase 1 foundation, documentation, and frontend design
-  system implementation and verification.
+- **Completed tasks:** Phase 1 foundation, design system, and landing page
+  implementation and verification.
 - **In progress:** None.
 - **Pending tasks:** All work in Phases 2–8.
 
@@ -265,6 +287,9 @@ implementation; preserve the history rather than replacing the plan.
 | CSS variables with Tailwind CSS v4 `@theme inline` | Provides semantic design tokens while retaining the existing Vite plugin and avoiding a legacy Tailwind config. |
 | Shared UI, common, and layout component layers | Keeps generic controls, feedback states, and navigation reusable across future features. |
 | Development-only lazy design-system route | Allows component inspection without exposing the preview page or chunk in production builds. |
+| Home feature sections under `features/home/` | Keeps landing-page sections focused and makes reuse/iteration straightforward. |
+| Client-only search preview | Validates preferences and explains current limitations without calling nonexistent APIs or implying search results. |
+| Fixed Unsplash image URLs with graceful fallback | Supplies editorial imagery without adding a package or random image endpoint; remote images remain optional. |
 | REST communication | Establishes a simple explicit boundary between frontend and backend. |
 | Mongoose connection is optional during local development | The health service and initial API can run before database credentials exist. |
 | Provider adapters normalise external offers | Planned integration isolates provider APIs and supports comparison against shared contracts. |
@@ -281,7 +306,16 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Known limitations
 
-- The frontend root remains a starter screen, not a landing page or planner.
+- The frontend root is an informational landing page, not a functional trip
+  planner.
+- The trip form is a browser-only preview; no trip is created, saved, or searched
+  and currency selection is not yet available.
+- Destination cards are editorial samples, not live offers; price, availability,
+  ratings, and provider search are intentionally absent.
+- Editorial image URLs require network access; unavailable images show a local
+  placeholder rather than breaking the layout.
+- Sign-in and get-started do not create an account; sign-in reports that accounts
+  are coming soon and get-started scrolls to the local form.
 - Navbar/footer product and legal destinations are placeholders until their
   corresponding routes and policies exist.
 - The design preview is available only in the Vite development build.
@@ -300,6 +334,8 @@ implementation; preserve the history rather than replacing the plan.
 | 2026-11-03 | Started Phase 1 repository foundation, frontend/backend scaffolding, and documentation. |
 | 2026-11-03 | Installed workspace dependencies (npm audit: 0 vulnerabilities); frontend and backend builds passed. Frontend returned HTTP 200; backend health returned HTTP 200 without MongoDB and an unknown route returned HTTP 404. |
 | 2026-11-03 | Published the Phase 1 foundation to GitHub `main` as commit `eb3d2da35366eedd655c34277b08e50a9ced939d`. |
+| 2026-11-03 | Completed Phase 1 Step 2: semantic Tailwind v4 design tokens, reusable UI/common/layout components, and dev-only design preview; builds and browser checks passed. |
+| 2026-11-03 | Completed Phase 1 Step 3: responsive landing page, controlled local-only trip form, six editorial destinations, informational sections and CTAs; verified form/nav interactions, remote imagery, 390/768/1440 px layouts, clean browser console, and production exclusion of the design preview. Frontend and backend builds passed; no dependencies added. |
 | 2026-11-03 | Completed the reusable frontend design system, semantic CSS/Tailwind v4 tokens, common and layout components, and a development-only preview. TypeScript and production builds passed; browser checks at 390, 768, and 1440 px found no horizontal overflow or console errors, and keyboard navigation worked. Production output excludes the preview route and chunk. No dependencies were added. |
 
 ## Next recommended implementation step
