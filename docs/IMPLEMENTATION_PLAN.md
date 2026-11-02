@@ -7,8 +7,8 @@ implementation; preserve the history rather than replacing the plan.
 ## Current project status
 
 - **Current phase:** Phase 1 – Project Foundation and Frontend Setup.
-- **Overall status:** Foundation implementation and local verification are
-  complete; commit and remote publication are pending.
+- **Overall status:** Phase 1 foundation, local verification, and remote
+  publication are complete. Phase 2 is the next development phase.
 - **Booking model:** TripCraft will link users to external booking platforms;
   TripCraft will not process bookings or payments.
 - **Implemented product surface:** Minimal React starter screen and `GET
@@ -39,7 +39,7 @@ implementation; preserve the history rather than replacing the plan.
     unknown-route handling.
   - [x] Verify environment/build ignore rules and repository-local author and
     committer identity.
-  - [ ] Create the initial commit and publish it to the remote.
+  - [x] Create the initial commit and publish it to the remote `main` branch.
 - **Relevant frontend modules:** `frontend/src/app/`, `components/`, `services/`,
   `styles/`, and Vite/TypeScript configuration.
 - **Relevant backend modules:** `backend/src/config/`, `middleware/`, `routes/`,
@@ -51,8 +51,7 @@ implementation; preserve the history rather than replacing the plan.
 - **Testing requirements:** npm dependency installation; strict frontend build;
   backend TypeScript build; frontend server startup; backend startup without
   MongoDB; health and unknown-route HTTP checks; secret-ignore checks.
-- **Current status:** Local implementation and verification complete; initial
-  commit and publication remain.
+- **Current status:** Complete.
 
 ### PHASE 2 – Authentication and Trip Management
 
@@ -236,7 +235,7 @@ implementation; preserve the history rather than replacing the plan.
 ## Status summary
 
 - **Completed tasks:** Phase 1 code and documentation scaffolding listed above.
-- **In progress:** Initial commit and remote publication.
+- **In progress:** None.
 - **Pending tasks:** All work in Phases 2–8.
 
 ## Technical decisions
@@ -274,9 +273,9 @@ implementation; preserve the history rather than replacing the plan.
 | --- | --- |
 | 2026-11-03 | Started Phase 1 repository foundation, frontend/backend scaffolding, and documentation. |
 | 2026-11-03 | Installed workspace dependencies (npm audit: 0 vulnerabilities); frontend and backend builds passed. Frontend returned HTTP 200; backend health returned HTTP 200 without MongoDB and an unknown route returned HTTP 404. |
+| 2026-11-03 | Published the Phase 1 foundation to GitHub `main` as commit `eb3d2da35366eedd655c34277b08e50a9ced939d`. |
 
 ## Next recommended implementation step
 
-Complete and record Phase 1 build/runtime/repository verification. After the
-foundation is published, begin Phase 2 by defining the user/trip data contracts
-and authentication requirements before implementing persistence or routes.
+Begin Phase 2 by defining the user/trip data contracts and authentication
+requirements before implementing persistence or routes.

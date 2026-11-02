@@ -164,6 +164,6 @@ platforms rather than handling bookings itself.
 
 **Phase 1 foundation:** frontend and backend starter applications, environment
 examples, and project documentation are implemented and locally verified.
-Initial GitHub publication is pending. Only the API health endpoint is
+The foundation is published on GitHub `main`. Only the API health endpoint is
 available; authentication, database models, provider integrations, AI, and
 trip-planning features are not implemented.
