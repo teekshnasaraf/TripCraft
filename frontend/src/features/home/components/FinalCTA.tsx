@@ -1,4 +1,5 @@
 import { ArrowRight, Compass } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Container } from "../../../components/ui/Container";
 
 export function FinalCTA() {
@@ -24,13 +25,13 @@ export function FinalCTA() {
             tools are on the way.
           </p>
         </div>
-        <a
-          href="#trip-search"
+        <Link
+          to="/plan-trip"
           className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-control bg-mint-background px-5 text-body font-semibold text-primary-dark transition-standard hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark"
         >
           Start planning
           <ArrowRight aria-hidden="true" className="size-4" />
-        </a>
+        </Link>
       </Container>
     </section>
   );

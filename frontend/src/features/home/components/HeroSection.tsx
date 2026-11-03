@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowRight, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 import { EditorialImage } from "./EditorialImage";
 
 export function HeroSection() {
@@ -31,13 +32,13 @@ export function HeroSection() {
             makes every trip count.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a
-              href="#trip-search"
+            <Link
+              to="/plan-trip"
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-control bg-mint-background px-5 text-subheading font-semibold text-primary-dark transition-standard hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark"
             >
               Plan My Trip
               <ArrowRight aria-hidden="true" className="size-5" />
-            </a>
+            </Link>
             <a
               href="#destinations"
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-control border border-white/50 px-5 text-body font-semibold text-white transition-standard hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark"

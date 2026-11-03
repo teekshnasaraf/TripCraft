@@ -1,8 +1,9 @@
 # TripCraft Architecture
 
-This document separates the implemented Phase 1 foundation from the intended
-architecture for later feature phases. Planned components are not deployed
-services or implemented features.
+This document distinguishes the implemented frontend foundation and page
+structure from backend services and product capabilities that remain planned.
+Frontend previews do not imply that authentication, persistence, or travel
+integrations are implemented.
 
 ## Frontend architecture
 
@@ -15,18 +16,30 @@ system covers the TripCraft colour palette, typography, spacing, radii,
 shadows, transitions, and container widths. `src/services/apiClient.ts`
 provides the Axios instance configured from `VITE_API_BASE_URL`.
 
-The `features/` tree is reserved for domain-oriented UI modules (auth, trips,
-flights, hotels, activities, itinerary, budget, and profile). Shared components,
-hooks, types, and utilities should remain separate from feature-specific code.
+The `features/` tree contains domain-oriented UI modules. `auth/` owns sign-in
+and registration forms, a future-facing auth context, and route protection;
+`dashboard/` owns the dashboard layout and empty states; `home/` owns the
+landing page; and `trips/` owns the local trip-planner form. Future flight,
+hotel, activity, itinerary, budget, and profile modules can follow the same
+feature boundary. Shared components, hooks, types, and utilities should remain
+separate from feature-specific code.
 Reusable presentational components live in `src/components/ui/`; loading and
 feedback components live in `src/components/common/`; shared site chrome is in
 `src/components/layout/`. The `/` route renders the editorial landing page,
-assembled from focused components in `src/features/home/`. Its trip form
-validates preferences in the browser and explains that planning is not yet
-connected; it does not call an API or persist trip data. Account, comparison,
-optimisation, itinerary, and booking capabilities remain unimplemented. A
-separate `/dev/design-system` route is available in development for visual
-inspection and is omitted from production builds.
+assembled from focused components in `src/features/home/`. `/sign-in` and
+`/register` provide accessible, client-validated forms but do not authenticate
+or create accounts. `/dashboard` is protected by `RequireAuth`; with the
+current unauthenticated context it redirects to `/sign-in`.
+`/dev/dashboard-preview` exists only in development to inspect the dashboard
+empty states. `/plan-trip` is public and validates destinations, dates,
+traveller counts, total INR budget, preferences, accommodation, and trip style
+locally. Neither homepage nor planner form calls an API or persists data. The
+context exposes user/loading/authentication state and login/logout operations
+for later integration, but those operations explicitly reject while
+authentication is unavailable; no user, token, or successful login is
+simulated. JWT handling, backend authentication, account storage, and recovery
+remain Phase 2 work. The development-only `/dev/design-system` preview remains
+excluded from production.
 
 ## Backend architecture
 
@@ -89,21 +102,30 @@ from provider-confirmed prices. Neither engine exists yet.
 ### Implemented
 
 1. A browser loads the React/Vite application.
-2. The router renders the informational homepage from `features/home/`.
-3. The backend starts; if configured, it first connects to MongoDB.
-4. The homepage form validates entered preferences locally and shows a
-   frontend-only “coming soon” response on valid submission.
-5. The backend health endpoint returns service status and whether MongoDB is
-   configured and connected.
-6. In development only, `/dev/design-system` renders the component preview.
+2. The router serves the informational homepage, sign-in and registration
+   forms, public trip planner, and an unknown-route page.
+3. Sign-in and registration validate in the browser; valid submissions clearly
+   report that account operations are not connected and store no data.
+4. The public trip planner validates preferences in the browser and reports
+   that trip creation and live search are not connected; it makes no API call.
+5. `/dashboard` checks the auth context and redirects unauthenticated visitors
+   to `/sign-in`; a dashboard preview is available only in development.
+6. The backend starts; if configured, it first connects to MongoDB. Its health
+   endpoint reports service status and database configuration/connection.
+7. In development only, `/dev/design-system` renders the component preview.
 
 ### Planned
 
-1. A user submits a trip/search request through a feature UI.
-2. The frontend calls a REST route via the shared Axios client.
-3. Backend validation and authorization pass a typed request to a service.
-4. Provider adapters retrieve external options and normalise results.
-5. Comparison/itinerary/optimisation services compose results and preserve
+1. A user signs in or registers through a future-connected auth form.
+2. The backend validates credentials, hashes passwords, issues/refreshes JWT
+   credentials, and authorizes protected routes.
+3. Authenticated trip operations persist data only after user ownership and
+   request validation checks.
+4. A user submits a trip/search request through a feature UI.
+5. The frontend calls a REST route via the shared Axios client.
+6. Backend validation and authorization pass a typed request to a service.
+7. Provider adapters retrieve external options and normalise results.
+8. Comparison/itinerary/optimisation services compose results and preserve
    source and freshness metadata.
-6. Results return to the frontend for review; outbound booking links open the
+9. Results return to the frontend for review; outbound booking links open the
    external provider. TripCraft itself does not reserve or sell travel.

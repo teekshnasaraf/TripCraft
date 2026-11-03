@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Button } from "../../../components/ui/Button";
+import { Link } from "react-router-dom";
 import { Footer } from "../../../components/layout/Footer";
 import { Navbar } from "../../../components/layout/Navbar";
 import { FeaturesSection } from "../components/FeaturesSection";
@@ -40,31 +39,24 @@ const footerSections = [
   },
 ];
 
+const homeActions = (
+  <>
+    <Link
+      to="/sign-in"
+      className="inline-flex min-h-11 items-center justify-center rounded-control px-4 text-small-label font-semibold text-secondary-teal transition-standard hover:bg-mint-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-teal focus-visible:ring-offset-2"
+    >
+      Sign In
+    </Link>
+    <Link
+      to="/register"
+      className="inline-flex min-h-11 items-center justify-center rounded-control bg-primary-dark px-4 text-small-label font-semibold text-surface transition-standard hover:bg-secondary-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-teal focus-visible:ring-offset-2"
+    >
+      Get Started
+    </Link>
+  </>
+);
+
 export default function HomePage() {
-  const [accountNotice, setAccountNotice] = useState("");
-
-  const accountActions = (
-    <>
-      <Button
-        variant="ghost"
-        size="medium"
-        onClick={() =>
-          setAccountNotice(
-            "Sign in is coming soon. TripCraft accounts are not available yet.",
-          )
-        }
-      >
-        Sign In
-      </Button>
-      <a
-        href="#trip-search"
-        className="inline-flex min-h-11 items-center justify-center rounded-control bg-primary-dark px-4 text-small-label font-semibold text-surface transition-standard hover:bg-secondary-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-teal focus-visible:ring-offset-2"
-      >
-        Get Started
-      </a>
-    </>
-  );
-
   return (
     <div className="min-h-screen bg-main-background text-primary-text">
       <a
@@ -75,25 +67,9 @@ export default function HomePage() {
       </a>
       <Navbar
         items={navigationItems}
-        actions={accountActions}
-        mobileActions={accountActions}
+        actions={homeActions}
+        mobileActions={homeActions}
       />
-      {accountNotice && (
-        <div
-          className="border-b border-border bg-mint-background px-page-gutter py-3 text-center text-small-label text-primary-dark"
-          role="status"
-          aria-live="polite"
-        >
-          {accountNotice}
-          <button
-            type="button"
-            className="ml-3 font-semibold underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-teal"
-            onClick={() => setAccountNotice("")}
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
       <main id="main-content">
         <HeroSection />
         <TripSearchForm />

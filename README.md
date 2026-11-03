@@ -23,11 +23,13 @@ reserve rooms, or take payment.
 
 Planned capabilities include trip management, travel search and comparison,
 AI-assisted itinerary generation, budget optimisation, saved trips, price
-tracking, and group planning. These features are not implemented yet. The
-application includes an informational landing page, a frontend-only trip-search
-form preview, and a backend foundation with a single API health endpoint. The
-form validates entered details locally but does not create, save, or search for
-a trip. No prices, availability, ratings, or booking results are displayed.
+tracking, and group planning. The application includes an informational landing
+page, local-only sign-in and registration forms, a trip-planning form, a
+protected dashboard route with a development preview, and a backend foundation
+with a single API health endpoint. Authentication, registration, trip creation,
+and live search are not connected: forms validate locally and do not send
+requests or store data. No prices, availability, ratings, or booking results
+are displayed.
 
 ## Technology stack
 
@@ -42,12 +44,13 @@ a trip. No prices, availability, ratings, or booking results are displayed.
 ## Architecture
 
 The repository contains separate frontend and backend npm workspaces. The
-browser application calls the backend over REST using a shared Axios client.
-The backend is organised into route, middleware, configuration, and service
-boundaries. Planned travel integrations will be implemented as independent
-provider adapters that map provider-specific responses into common TripCraft
-types. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for implemented and
-planned boundaries.
+frontend has a shared Axios client configured for the future REST API, but the
+current pages make no product API calls. The backend is organised into route,
+middleware, configuration, and service boundaries. Planned travel integrations
+will be implemented as independent provider adapters that map provider-specific
+responses into common TripCraft types. See
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for implemented and planned
+boundaries.
 
 ## Project structure
 
@@ -75,7 +78,18 @@ TripCraft/
 │       ├── assets/
 │       ├── components/
 │       ├── features/
-│       │   └── home/
+│       │   ├── auth/
+│       │   │   ├── components/
+│       │   │   ├── context/
+│       │   │   ├── hooks/
+│       │   │   └── pages/
+│       │   ├── dashboard/
+│       │   │   ├── components/
+│       │   │   └── pages/
+│       │   ├── home/
+│       │   │   ├── components/
+│       │   │   └── pages/
+│       │   └── trips/
 │       │       ├── components/
 │       │       └── pages/
 │       ├── hooks/
@@ -92,12 +106,27 @@ TripCraft/
 Feature-specific modules and future service directories are introduced as
 features are implemented; empty placeholder files are intentionally avoided.
 
+## Frontend routes
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Informational landing page. |
+| `/sign-in`, `/register` | Client-validated forms; authentication and account creation are not connected. |
+| `/dashboard` | Protected dashboard; redirects to sign-in while no authenticated session exists. |
+| `/plan-trip` | Public, locally validated trip-planning form; does not save or search. |
+| `*` | Not-found page. |
+| `/dev/design-system`, `/dev/dashboard-preview` | Development-only previews, excluded from production routing. |
+
+The auth context has no simulated user or session. Its login/logout operations
+remain unavailable until backend authentication is implemented; see
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Prerequisites
 
 - Node.js 20.19+ or 22.12+ (the project is validated with the active Node.js
   runtime)
 - npm 10+
-- MongoDB is optional for the Phase 1 development server.
+- MongoDB is optional for local development.
 
 ## Installation
 
@@ -167,8 +196,8 @@ platforms rather than handling bookings itself.
 
 ## Project status
 
-**Phase 1 foundation:** frontend and backend starter applications, environment
-examples, and project documentation are implemented and locally verified.
-The foundation is published on GitHub `main`. Only the API health endpoint is
-available; authentication, database models, provider integrations, AI, and
-trip-planning features are not implemented.
+**Implemented:** Phase 1 foundation, reusable design system, landing page, and
+Phase 2 frontend page/routing structure. The frontend forms are previews only;
+the only API endpoint is `GET /api/health`. Backend authentication, database
+models, user/trip persistence, provider integrations, AI, and live trip search
+are not implemented.

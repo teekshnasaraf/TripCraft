@@ -6,17 +6,20 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Current project status
 
-- **Current phase:** Phase 1 – Project Foundation and Frontend Setup (Steps 1–3
-  complete).
-- **Overall status:** Foundation, reusable design system, and responsive landing
-  page are implemented and locally verified. Phase 2 has not started.
+- **Current phase:** Phase 2 – Authentication and Trip Management (frontend
+  application structure implemented; backend integration remains pending).
+- **Overall status:** Phase 1 and the Phase 2 frontend page/routing structure are
+  implemented and locally verified. Backend authentication and trip
+  persistence have not started.
 - **Booking model:** TripCraft will link users to external booking platforms;
   TripCraft will not process bookings or payments.
-- **Implemented product surface:** Informational landing page, locally
-  validated frontend-only trip-search preview, development design-system
-  preview, and `GET /api/health`.
-- **Not implemented:** Authentication, actual trip search or persistence,
-  travel-provider calls, AI, optimisation, maps, booking, or payment.
+- **Implemented product surface:** Informational landing page; local-only
+  sign-in, registration, and trip-planning forms; protected dashboard route
+  with development preview; development design-system preview; and
+  `GET /api/health`.
+- **Not implemented:** Backend authentication/JWT issuance, accounts,
+  database-backed trip creation, actual trip search, travel-provider calls, AI,
+  optimisation, maps, booking, or payment.
 
 ## Phase tracking
 
@@ -99,12 +102,24 @@ implementation; preserve the history rather than replacing the plan.
 - **Features to implement:** Registration/sign-in, authenticated profile,
   create/read/update/delete trips, ownership checks, trip preferences.
 - **Detailed implementation tasks:**
-  - Define user and trip schemas, indexes, validation, and migration/seed policy.
-  - Implement password hashing and token/session lifecycle with safe secret
+  - [ ] Define user and trip schemas, indexes, validation, and migration/seed
+    policy.
+  - [ ] Implement password hashing and token/session lifecycle with safe secret
     handling and authorization middleware.
-  - Add authentication/profile/trip REST routes, controllers, and services.
-  - Add frontend forms, validation, route protection, trip list, and trip editor.
-  - Define deletion, retention, and personal-data handling behavior.
+  - [ ] Add authentication/profile/trip REST routes, controllers, and services.
+  - [x] Add local-validated sign-in and registration pages. These forms do not
+    authenticate, create accounts, or send API requests.
+  - [x] Add a typed auth context/interface and protected-route redirect. Its
+    login/logout operations remain unavailable until the backend is connected.
+  - [x] Add responsive dashboard navigation, overview placeholders, and trip
+    empty states without inventing account statistics.
+  - [x] Add the public trip-planner form with local destination/date/traveller/
+    budget validation and selectable travel preferences.
+  - [x] Add `/sign-in`, `/register`, `/dashboard`, `/plan-trip`, and not-found
+    routing while preserving `/`; add a development-only dashboard preview.
+  - [ ] Connect authenticated profile, trip list, trip editor, and persistence
+    to the Phase 2 backend.
+  - [ ] Define deletion, retention, and personal-data handling behavior.
 - **Relevant frontend modules:** `features/auth/`, `features/profile/`,
   `features/trips/`, shared form components, API services.
 - **Relevant backend modules:** `models/`, `services/auth/`, `services/trips/`,
@@ -115,7 +130,9 @@ implementation; preserve the history rather than replacing the plan.
 - **Dependencies on previous phases:** Phase 1.
 - **Testing requirements:** Unit, API integration, authorization/ownership,
   validation, password handling, and frontend form/route tests.
-- **Current status:** Pending.
+- **Current status:** In progress — frontend structure and local-only flows are
+  implemented; backend authentication, database integration, trip creation,
+  and persistence remain pending.
 
 ### PHASE 3 – Travel API Integrations
 
@@ -273,10 +290,11 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Status summary
 
-- **Completed tasks:** Phase 1 foundation, design system, and landing page
-  implementation and verification.
-- **In progress:** None.
-- **Pending tasks:** All work in Phases 2–8.
+- **Completed tasks:** Phase 1 foundation, design system, and landing page;
+  Phase 2 frontend application pages, auth-ready routing, dashboard structure,
+  and local planner validation.
+- **In progress:** Phase 2 backend auth and trip-management design/integration.
+- **Pending tasks:** Remaining Phase 2 backend work and Phases 3–8.
 
 ## Technical decisions
 
@@ -290,6 +308,9 @@ implementation; preserve the history rather than replacing the plan.
 | Home feature sections under `features/home/` | Keeps landing-page sections focused and makes reuse/iteration straightforward. |
 | Client-only search preview | Validates preferences and explains current limitations without calling nonexistent APIs or implying search results. |
 | Fixed Unsplash image URLs with graceful fallback | Supplies editorial imagery without adding a package or random image endpoint; remote images remain optional. |
+| Auth context with no simulated user | Establishes the frontend contract and protected-route behavior without fake credentials or a fabricated successful session. |
+| Development-only dashboard preview | Allows empty-state layout inspection while production `/dashboard` remains protected and redirects unauthenticated users. |
+| Local-only trip-planner validation | Exercises the future input shape without API calls, database records, or fabricated prices/availability. |
 | REST communication | Establishes a simple explicit boundary between frontend and backend. |
 | Mongoose connection is optional during local development | The health service and initial API can run before database credentials exist. |
 | Provider adapters normalise external offers | Planned integration isolates provider APIs and supports comparison against shared contracts. |
@@ -306,16 +327,24 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Known limitations
 
-- The frontend root is an informational landing page, not a functional trip
-  planner.
+- The frontend root is informational; `/plan-trip` is a validated form preview,
+  not a functional trip planner.
 - The trip form is a browser-only preview; no trip is created, saved, or searched
   and currency selection is not yet available.
 - Destination cards are editorial samples, not live offers; price, availability,
   ratings, and provider search are intentionally absent.
 - Editorial image URLs require network access; unavailable images show a local
   placeholder rather than breaking the layout.
-- Sign-in and get-started do not create an account; sign-in reports that accounts
-  are coming soon and get-started scrolls to the local form.
+- Sign-in and registration do not create accounts. Valid sign-in shows that
+  authentication is unavailable; valid registration states that no account is
+  stored.
+- The auth context contains no user/session and its login/logout operations
+  reject until backend authentication is connected. `/dashboard` therefore
+  redirects to `/sign-in`; inspect empty states at `/dev/dashboard-preview` in
+  development.
+- Trip-planner submission validates locally and clearly reports that no trip is
+  saved and no travel availability is searched. Budget is in INR; currency
+  conversion and live recommendations are not available.
 - Navbar/footer product and legal destinations are placeholders until their
   corresponding routes and policies exist.
 - The design preview is available only in the Vite development build.
@@ -337,8 +366,11 @@ implementation; preserve the history rather than replacing the plan.
 | 2026-11-03 | Completed Phase 1 Step 2: semantic Tailwind v4 design tokens, reusable UI/common/layout components, and dev-only design preview; builds and browser checks passed. |
 | 2026-11-03 | Completed Phase 1 Step 3: responsive landing page, controlled local-only trip form, six editorial destinations, informational sections and CTAs; verified form/nav interactions, remote imagery, 390/768/1440 px layouts, clean browser console, and production exclusion of the design preview. Frontend and backend builds passed; no dependencies added. |
 | 2026-11-03 | Completed the reusable frontend design system, semantic CSS/Tailwind v4 tokens, common and layout components, and a development-only preview. TypeScript and production builds passed; browser checks at 390, 768, and 1440 px found no horizontal overflow or console errors, and keyboard navigation worked. Production output excludes the preview route and chunk. No dependencies were added. |
+| 2026-11-03 | Completed Step 4 frontend structure: sign-in/register pages, explicit unavailable-auth context, protected dashboard route with dev preview, responsive empty-state dashboard, public locally validated trip planner, and not-found route. Frontend TypeScript/production build and backend build passed. Browser checks covered route navigation, validation, password visibility/confirmation, protected redirect, no API requests or console errors, and 390/768/1440 px layouts with no horizontal overflow. Production bundle excludes development preview routes. No dependencies added; backend auth, account/trip persistence, and live search remain pending. |
 
 ## Next recommended implementation step
 
-Begin Phase 2 by defining the user/trip data contracts and authentication
-requirements before implementing persistence or routes.
+Continue Phase 2 by defining user/trip data contracts and security/privacy
+requirements, then implement backend registration/login, password hashing,
+JWT/session lifecycle, authorization, profile/trip APIs, and persistence before
+connecting the frontend auth context and dashboard.
