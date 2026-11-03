@@ -28,7 +28,7 @@ export default function TripPlannerPage() {
             level="h1"
             eyebrow="Plan a trip"
             heading="Start with the details that matter to you"
-            subtitle="Share your route, dates, budget, and preferences. This form validates locally only; it does not search for travel or save a trip."
+            subtitle="Share your route, dates, budget, and preferences. Sign in to save your trip; travel-provider search and availability are not connected."
           />
           <TripPlannerForm />
         </Container>

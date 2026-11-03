@@ -1,9 +1,8 @@
 # TripCraft Architecture
 
-This document distinguishes the implemented frontend foundation and page
-structure from backend services and product capabilities that remain planned.
-Frontend previews do not imply that authentication, persistence, or travel
-integrations are implemented.
+This document distinguishes implemented account and trip flows from product
+capabilities that remain planned. Development previews are isolated from
+account data; live provider integrations remain unimplemented.
 
 ## Frontend architecture
 
@@ -17,9 +16,10 @@ shadows, transitions, and container widths. `src/services/apiClient.ts`
 provides the Axios instance configured from `VITE_API_BASE_URL`.
 
 The `features/` tree contains domain-oriented UI modules. `auth/` owns sign-in
-and registration forms, a future-facing auth context, and route protection;
-`dashboard/` owns the dashboard layout and empty states; `home/` owns the
-landing page; and `trips/` owns the local trip-planner form. Future flight,
+and registration forms, an API-backed auth context, session-token helper, and
+route protection; `dashboard/` owns the authenticated dashboard layout and
+trip-list states; `home/` owns the landing page; and `trips/` owns the trip
+planner and API submission. Future flight,
 hotel, activity, itinerary, budget, and profile modules can follow the same
 feature boundary. Shared components, hooks, types, and utilities should remain
 separate from feature-specific code.
@@ -27,19 +27,21 @@ Reusable presentational components live in `src/components/ui/`; loading and
 feedback components live in `src/components/common/`; shared site chrome is in
 `src/components/layout/`. The `/` route renders the editorial landing page,
 assembled from focused components in `src/features/home/`. `/sign-in` and
-`/register` provide accessible, client-validated forms but do not authenticate
-or create accounts. `/dashboard` is protected by `RequireAuth`; with the
-current unauthenticated context it redirects to `/sign-in`.
+`/register` provide accessible, client-validated forms connected to the
+backend. The auth context restores a bearer token held in tab-scoped
+`sessionStorage` by calling `GET /api/auth/me`; login and registration store
+the returned access token only after a successful response. A `401` clears the
+token and updates auth state. Logout clears local token state; there is no
+server-side token revocation or refresh-token flow. `/dashboard` is protected
+by `RequireAuth`; unauthenticated visitors are redirected to `/sign-in`.
 `/dev/dashboard-preview` exists only in development to inspect the dashboard
-empty states. `/plan-trip` is public and validates destinations, dates,
-traveller counts, total INR budget, preferences, accommodation, and trip style
-locally. Neither homepage nor planner form calls an API or persists data. The
-context exposes user/loading/authentication state and login/logout operations
-for later integration, but those operations explicitly reject while
-authentication is unavailable; no user, token, or successful login is
-simulated. JWT handling, backend authentication, account storage, and recovery
-remain Phase 2 work. The development-only `/dev/design-system` preview remains
-excluded from production.
+empty states without requesting account data. `/plan-trip` is public and
+validates destinations, dates, traveller counts, total INR budget,
+preferences, accommodation, and trip style locally. Submission calls
+`POST /api/trips`; the API requires an authenticated user and persists the trip.
+The planner does not search providers or return travel availability or prices.
+The development-only `/dev/design-system` preview remains excluded from
+production.
 
 ## Backend architecture
 
@@ -50,28 +52,41 @@ are in `src/config/`. Route, middleware, controller, service, model, and
 integration boundaries are intended to keep HTTP handling separate from
 business logic.
 
-Implemented modules are the environment/database configuration, CORS and JSON
-middleware, `GET /api/health`, a JSON not-found response, and central error
-handling. Domain controllers, models, and services do not exist yet.
+Implemented modules include environment/database configuration, CORS and JSON
+middleware, `GET /api/health`, auth and trip routes/controllers/services,
+Mongoose user/trip models, JWT authentication middleware, request validation,
+and central safe error handling. User passwords are hashed with bcryptjs;
+password hashes are excluded from normal user queries and API DTOs. Access
+tokens are signed with `JWT_SECRET` and expire according to `JWT_EXPIRES_IN`.
+There are no refresh tokens, email verification, password recovery, or
+server-side token revocation.
 
 ## Frontend/backend communication
 
 The browser calls the backend over REST through the shared Axios client. The
-base URL comes from `VITE_API_BASE_URL`; the backend allows the configured
-`CLIENT_URL` origin. TanStack Query is configured as the shared client for
-future server-state operations. No product API calls are implemented yet.
+base URL comes from `VITE_API_BASE_URL` (default
+`http://localhost:5000/api`); the backend allows the configured `CLIENT_URL`
+origin. The Axios request interceptor attaches the tab-scoped bearer token and
+the response interceptor clears it on `401`. TanStack Query loads the
+authenticated trip list and is invalidated after creating a trip. Registration,
+login, current-user lookup, trip creation, and trip listing are connected.
 
 ## Database architecture
 
-MongoDB is the planned persistence store, accessed through Mongoose. The
-connection string is `MONGODB_URI`. It is optional in local development: when it
-is absent, the server starts and the health response reports
-`database.configured: false` and `database.connected: false`. If a URI is set,
-startup awaits a database connection and surfaces connection failures rather
-than claiming success.
+MongoDB is the persistence store, accessed through Mongoose using
+`MONGODB_URI`. If the URI is absent or still contains the `<db_username>`,
+`<db_password>`, or `<cluster-host>` placeholder, the server starts without
+attempting a connection, health reports that the database is disconnected, and
+auth/trip routes return `503`. Connection failures are logged without printing
+the URI; database-backed routes remain unavailable.
 
-User, trip, offer, itinerary, and price-history schemas are future decisions;
-no application models or migrations exist.
+The `User` model stores a unique normalized email, name, bcrypt password hash,
+and timestamps. The `Trip` model stores the owning user id, destination,
+dates, travellers, INR budget, preferences, accommodation, style, status, and
+timestamps. A compound owner/creation-time index supports user-scoped
+pagination. Reads, updates, and deletes constrain by both trip id and owner id;
+the API never accepts a client-supplied owner id. Account deletion, retention,
+and personal-data erasure policy remain undecided.
 
 ## Planned external API integrations
 
@@ -104,28 +119,27 @@ from provider-confirmed prices. Neither engine exists yet.
 1. A browser loads the React/Vite application.
 2. The router serves the informational homepage, sign-in and registration
    forms, public trip planner, and an unknown-route page.
-3. Sign-in and registration validate in the browser; valid submissions clearly
-   report that account operations are not connected and store no data.
-4. The public trip planner validates preferences in the browser and reports
-   that trip creation and live search are not connected; it makes no API call.
-5. `/dashboard` checks the auth context and redirects unauthenticated visitors
-   to `/sign-in`; a dashboard preview is available only in development.
-6. The backend starts; if configured, it first connects to MongoDB. Its health
+3. Sign-in and registration validate in the browser and call the auth API.
+4. The auth API hashes registration passwords, verifies login credentials,
+   issues an expiring access token, and returns a safe user profile.
+5. `/dashboard` restores/uses the current profile, redirects unauthenticated
+   visitors to `/sign-in`, and displays only trips owned by the authenticated
+   user; an empty-state preview is available only in development.
+6. The public trip planner validates input and sends a user-owned trip to the
+   backend; no travel search is initiated.
+7. The backend starts; if configured, it first connects to MongoDB. Its health
    endpoint reports service status and database configuration/connection.
-7. In development only, `/dev/design-system` renders the component preview.
+8. In development only, `/dev/design-system` renders the component preview.
 
 ### Planned
 
-1. A user signs in or registers through a future-connected auth form.
-2. The backend validates credentials, hashes passwords, issues/refreshes JWT
-   credentials, and authorizes protected routes.
-3. Authenticated trip operations persist data only after user ownership and
-   request validation checks.
-4. A user submits a trip/search request through a feature UI.
-5. The frontend calls a REST route via the shared Axios client.
-6. Backend validation and authorization pass a typed request to a service.
-7. Provider adapters retrieve external options and normalise results.
-8. Comparison/itinerary/optimisation services compose results and preserve
-   source and freshness metadata.
-9. Results return to the frontend for review; outbound booking links open the
+1. A user requests flight, accommodation, or activity options for a saved
+   trip.
+2. The frontend calls a future search REST endpoint through the shared Axios
+   client.
+3. Backend validation passes a typed request to the relevant provider adapter.
+4. Provider adapters retrieve and normalize offers while preserving source,
+   currency, fees, availability, and freshness metadata.
+5. Comparison, itinerary, and optimisation services compose sourced results.
+6. Results return to the frontend for review; outbound booking links open the
    external provider. TripCraft itself does not reserve or sell travel.

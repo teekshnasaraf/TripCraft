@@ -48,7 +48,10 @@ const developmentRoutes = import.meta.env.DEV
                 </main>
               }
             >
-              <DashboardPreview preview />
+              <DashboardPreview
+                preview
+                dashboardHref="/dev/dashboard-preview"
+              />
             </Suspense>
           ),
         },

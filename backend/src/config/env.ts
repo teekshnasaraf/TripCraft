@@ -23,4 +23,5 @@ export const config = {
   clientUrl: process.env.CLIENT_URL ?? "http://localhost:5173",
   mongodbUri: process.env.MONGODB_URI?.trim() || undefined,
   jwtSecret: process.env.JWT_SECRET?.trim() || undefined,
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN?.trim() || "15m",
 } as const;

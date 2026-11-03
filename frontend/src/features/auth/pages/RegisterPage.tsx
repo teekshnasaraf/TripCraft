@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useRef, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { AuthPageLayout } from "../components/AuthPageLayout";
 import { PasswordField } from "../components/PasswordField";
+import { useAuth } from "../hooks/useAuth";
 
 interface RegisterValues {
   fullName: string;
@@ -17,6 +18,8 @@ type RegisterField = keyof RegisterValues;
 type RegisterErrors = Partial<Record<RegisterField, string>>;
 
 export default function RegisterPage() {
+  const { register } = useAuth();
+  const navigate = useNavigate();
   const [values, setValues] = useState<RegisterValues>({
     fullName: "",
     email: "",
@@ -25,10 +28,16 @@ export default function RegisterPage() {
     acceptedTerms: false,
   });
   const [errors, setErrors] = useState<RegisterErrors>({});
-  const [message, setMessage] = useState("");
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionInProgress = useRef(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submissionInProgress.current) {
+      return;
+    }
+
     const nextErrors: RegisterErrors = {};
 
     if (!values.fullName.trim()) {
@@ -52,12 +61,30 @@ export default function RegisterPage() {
     }
 
     setErrors(nextErrors);
-    setMessage("");
+    setFormError("");
 
-    if (Object.keys(nextErrors).length === 0) {
-      setMessage(
-        "Registration is not connected yet. No account has been created or stored.",
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    submissionInProgress.current = true;
+    setIsSubmitting(true);
+    try {
+      await register(
+        values.fullName.trim(),
+        values.email.trim(),
+        values.password,
       );
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again.",
+      );
+    } finally {
+      submissionInProgress.current = false;
+      setIsSubmitting(false);
     }
   }
 
@@ -72,7 +99,7 @@ export default function RegisterPage() {
       }
       return next;
     });
-    setMessage("");
+    setFormError("");
   }
 
   return (
@@ -143,15 +170,15 @@ export default function RegisterPage() {
             </p>
           )}
         </div>
-        {message && (
+        {formError && (
           <p
-            role="status"
-            className="rounded-control border border-secondary-teal/30 bg-mint-background p-3 text-small-label text-primary-dark"
+            role="alert"
+            className="rounded-control border border-error/30 bg-error/5 p-3 text-small-label text-error-text"
           >
-            {message}
+            {formError}
           </p>
         )}
-        <Button type="submit" fullWidth>
+        <Button type="submit" fullWidth loading={isSubmitting}>
           Create Account
         </Button>
         <p className="text-center text-small-label text-secondary-text">
@@ -162,9 +189,6 @@ export default function RegisterPage() {
           >
             Sign in
           </Link>
-        </p>
-        <p className="text-center text-caption text-secondary-text">
-          Registration is a local form preview. No account will be created.
         </p>
       </form>
     </AuthPageLayout>

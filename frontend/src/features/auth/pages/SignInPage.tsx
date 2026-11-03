@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useRef, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { AuthPageLayout } from "../components/AuthPageLayout";
@@ -9,25 +9,29 @@ import { useAuth } from "../hooks/useAuth";
 interface SignInValues {
   email: string;
   password: string;
-  rememberMe: boolean;
 }
 
 type SignInErrors = Partial<Record<"email" | "password", string>>;
 
 export default function SignInPage() {
-  const { login } = useAuth();
+  const { login, error: authError } = useAuth();
+  const navigate = useNavigate();
   const [values, setValues] = useState<SignInValues>({
     email: "",
     password: "",
-    rememberMe: false,
   });
   const [errors, setErrors] = useState<SignInErrors>({});
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionInProgress = useRef(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submissionInProgress.current) {
+      return;
+    }
+
     const nextErrors: SignInErrors = {};
 
     if (!values.email.trim()) {
@@ -49,8 +53,10 @@ export default function SignInPage() {
     }
 
     setIsSubmitting(true);
+    submissionInProgress.current = true;
     try {
       await login(values.email.trim(), values.password);
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       setFormError(
         error instanceof Error
@@ -58,6 +64,7 @@ export default function SignInPage() {
           : "Sign-in is unavailable. Please try again later.",
       );
     } finally {
+      submissionInProgress.current = false;
       setIsSubmitting(false);
     }
   }
@@ -91,21 +98,7 @@ export default function SignInPage() {
           error={errors.password}
           autoComplete="current-password"
         />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <label className="inline-flex items-center gap-2 text-small-label text-primary-text">
-            <input
-              type="checkbox"
-              checked={values.rememberMe}
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  rememberMe: event.target.checked,
-                }))
-              }
-              className="size-4 accent-secondary-teal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-teal focus-visible:ring-offset-2"
-            />
-            Remember me
-          </label>
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <a
             href="#forgot-password"
             className="text-small-label font-semibold text-secondary-teal underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-teal"
@@ -120,6 +113,11 @@ export default function SignInPage() {
         {notice && (
           <p role="status" className="text-small-label text-secondary-text">
             {notice}
+          </p>
+        )}
+        {authError && !formError && (
+          <p role="alert" className="text-small-label text-error-text">
+            {authError}
           </p>
         )}
         {formError && (
@@ -143,7 +141,7 @@ export default function SignInPage() {
           </Link>
         </p>
         <p className="text-center text-caption text-secondary-text">
-          Authentication is not connected yet. No sign-in will be completed.
+          Your sign-in remains active for this browser tab only.
         </p>
       </form>
     </AuthPageLayout>

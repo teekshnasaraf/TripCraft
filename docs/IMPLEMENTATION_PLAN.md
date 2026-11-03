@@ -6,20 +6,21 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Current project status
 
-- **Current phase:** Phase 2 – Authentication and Trip Management (frontend
-  application structure implemented; backend integration remains pending).
-- **Overall status:** Phase 1 and the Phase 2 frontend page/routing structure are
-  implemented and locally verified. Backend authentication and trip
-  persistence have not started.
+- **Current phase:** Phase 2 – Authentication and Trip Management.
+- **Overall status:** Phase 1 is complete. Phase 2 backend APIs and frontend
+  authentication/trip creation integration are implemented and covered by
+  isolated API tests. A real MongoDB Atlas connection has not been verified;
+  data-retention decisions and trip editing/deletion UI remain pending.
 - **Booking model:** TripCraft will link users to external booking platforms;
   TripCraft will not process bookings or payments.
-- **Implemented product surface:** Informational landing page; local-only
-  sign-in, registration, and trip-planning forms; protected dashboard route
-  with development preview; development design-system preview; and
+- **Implemented product surface:** Informational landing page; JWT-backed
+  registration/sign-in; authenticated dashboard and owner-scoped trip APIs;
+  trip creation; development dashboard/design-system previews; and
   `GET /api/health`.
-- **Not implemented:** Backend authentication/JWT issuance, accounts,
-  database-backed trip creation, actual trip search, travel-provider calls, AI,
-  optimisation, maps, booking, or payment.
+- **Not implemented:** Atlas connectivity verification with real credentials,
+  profile editing/deletion, password recovery, token refresh/revocation,
+  saved destinations, actual travel search, provider calls, AI, optimisation,
+  maps, booking, or payment.
 
 ## Phase tracking
 
@@ -102,37 +103,50 @@ implementation; preserve the history rather than replacing the plan.
 - **Features to implement:** Registration/sign-in, authenticated profile,
   create/read/update/delete trips, ownership checks, trip preferences.
 - **Detailed implementation tasks:**
-  - [ ] Define user and trip schemas, indexes, validation, and migration/seed
-    policy.
-  - [ ] Implement password hashing and token/session lifecycle with safe secret
-    handling and authorization middleware.
-  - [ ] Add authentication/profile/trip REST routes, controllers, and services.
-  - [x] Add local-validated sign-in and registration pages. These forms do not
-    authenticate, create accounts, or send API requests.
-  - [x] Add a typed auth context/interface and protected-route redirect. Its
-    login/logout operations remain unavailable until the backend is connected.
-  - [x] Add responsive dashboard navigation, overview placeholders, and trip
-    empty states without inventing account statistics.
-  - [x] Add the public trip-planner form with local destination/date/traveller/
-    budget validation and selectable travel preferences.
+  - [x] Define user/trip schemas, unique and owner-scoped indexes, strict
+    validation, and safe response DTOs; no seed data is required.
+  - [x] Implement bcrypt password hashing, expiring JWTs, bearer authorization,
+    session-token handling, and safe secret/error logging. Refresh and
+    server-side revocation are intentionally not implemented.
+  - [x] Add registration, login, current-user, and user-owned trip CRUD REST
+    routes, controllers, and services.
+  - [x] Connect sign-in and registration forms with client validation,
+    accessible feedback, loading states, and navigation only after API success.
+  - [x] Add a typed auth context, token restoration, logout, and protected-route
+    redirect; no user or successful session is fabricated.
+  - [x] Connect the responsive dashboard to the authenticated trip list and
+    accurate owner-scoped summary counts; preserve honest empty/error states.
+  - [x] Connect the public trip-planner form to authenticated trip creation
+    with local validation and no provider search or fabricated offers.
   - [x] Add `/sign-in`, `/register`, `/dashboard`, `/plan-trip`, and not-found
     routing while preserving `/`; add a development-only dashboard preview.
-  - [ ] Connect authenticated profile, trip list, trip editor, and persistence
-    to the Phase 2 backend.
-  - [ ] Define deletion, retention, and personal-data handling behavior.
+  - [x] Connect profile lookup, trip list, creation, and persistence to the
+    Phase 2 backend; backend trip edit/delete routes enforce ownership.
+  - [x] Add isolated auth/trip API integration coverage using an ephemeral
+    MongoDB instance, including owner isolation, validation, and DB-unavailable
+    behavior.
+  - [ ] Connect trip editing/deletion controls in the UI and decide account
+    deletion, retention, and personal-data erasure behavior.
+  - [ ] Replace local MongoDB/JWT placeholders with deployment-managed values
+    and verify a real Atlas connection; no Atlas credentials are committed.
 - **Relevant frontend modules:** `features/auth/`, `features/profile/`,
   `features/trips/`, shared form components, API services.
 - **Relevant backend modules:** `models/`, `services/auth/`, `services/trips/`,
   `controllers/`, `routes/`, `middleware/`.
-- **Required external integrations:** MongoDB deployment and secret management;
-  email provider only if account verification or recovery is selected.
-- **Expected outcome:** Users can securely manage their account and trips.
+- **Required external integrations:** MongoDB deployment and JWT secret
+  management; email provider only if account verification or recovery is
+  selected.
+- **Expected outcome:** Users can authenticate and manage persisted,
+  owner-scoped trips; live travel search remains a later phase.
 - **Dependencies on previous phases:** Phase 1.
-- **Testing requirements:** Unit, API integration, authorization/ownership,
-  validation, password handling, and frontend form/route tests.
-- **Current status:** In progress — frontend structure and local-only flows are
-  implemented; backend authentication, database integration, trip creation,
-  and persistence remain pending.
+- **Testing requirements:** Unit/API integration, authorization/ownership,
+  validation, password handling, frontend form/route tests, and configured
+  database connectivity verification.
+- **Current status:** In progress — backend auth and trip CRUD, frontend
+  account/trip creation flows, isolated integration tests, and documentation
+  are implemented. Placeholder-only configuration intentionally prevents an
+  Atlas connection; profile mutation, trip edit/delete UI, retention policy,
+  and real deployment credentials remain outstanding.
 
 ### PHASE 3 – Travel API Integrations
 
@@ -327,33 +341,34 @@ implementation; preserve the history rather than replacing the plan.
 
 ## Known limitations
 
-- The frontend root is informational; `/plan-trip` is a validated form preview,
-  not a functional trip planner.
-- The trip form is a browser-only preview; no trip is created, saved, or searched
-  and currency selection is not yet available.
-- Destination cards are editorial samples, not live offers; price, availability,
-  ratings, and provider search are intentionally absent.
+- The frontend root remains informational; destination cards are editorial
+  samples, not live offers.
+- `/plan-trip` creates a persisted planning record when the user is signed in
+  and MongoDB/JWT configuration is valid. It does not search providers or
+  return availability or prices.
+- Trip records can be read, edited, and deleted through owner-protected APIs;
+  the dashboard UI currently exposes listing and creation, not editing or
+  deletion.
+- Atlas/JWT values are local placeholders. No live Atlas connection or
+  persisted production data has been verified.
+- Authentication uses short-lived bearer tokens in tab-scoped `sessionStorage`.
+  Refresh, server-side revocation/logout, email verification, and password
+  recovery are not implemented.
+- Saved destinations, profile editing/deletion, and account data retention/
+  erasure policy are not implemented or finalized.
 - Editorial image URLs require network access; unavailable images show a local
   placeholder rather than breaking the layout.
-- Sign-in and registration do not create accounts. Valid sign-in shows that
-  authentication is unavailable; valid registration states that no account is
-  stored.
-- The auth context contains no user/session and its login/logout operations
-  reject until backend authentication is connected. `/dashboard` therefore
-  redirects to `/sign-in`; inspect empty states at `/dev/dashboard-preview` in
-  development.
-- Trip-planner submission validates locally and clearly reports that no trip is
-  saved and no travel availability is searched. Budget is in INR; currency
-  conversion and live recommendations are not available.
 - Navbar/footer product and legal destinations are placeholders until their
   corresponding routes and policies exist.
 - The design preview is available only in the Vite development build.
-- No dedicated automated component-test runner is configured; this step was
-  validated with TypeScript/production builds and browser checks.
-- The API exposes only health status and does not persist trips.
-- MongoDB is not required by the health route; database availability is reported
-  as configured/connected, but readiness is not a separate endpoint.
-- `JWT_SECRET` is reserved for authentication and is not used by the API yet.
+- Backend auth/trip integration tests use an isolated ephemeral MongoDB; they
+  do not test connectivity to the configured Atlas deployment.
+- No dedicated automated frontend component-test runner is configured;
+  frontend behavior is checked with browser route, validation, and responsive
+  tests plus TypeScript/production builds.
+- MongoDB is not required for the health route; database availability is
+  reported as configured/connected, while database-backed routes return `503`
+  when the connection is unavailable.
 - No booking, payment, provider, AI, map, or price-tracking capability exists.
 
 ## Development log
@@ -367,10 +382,11 @@ implementation; preserve the history rather than replacing the plan.
 | 2026-11-03 | Completed Phase 1 Step 3: responsive landing page, controlled local-only trip form, six editorial destinations, informational sections and CTAs; verified form/nav interactions, remote imagery, 390/768/1440 px layouts, clean browser console, and production exclusion of the design preview. Frontend and backend builds passed; no dependencies added. |
 | 2026-11-03 | Completed the reusable frontend design system, semantic CSS/Tailwind v4 tokens, common and layout components, and a development-only preview. TypeScript and production builds passed; browser checks at 390, 768, and 1440 px found no horizontal overflow or console errors, and keyboard navigation worked. Production output excludes the preview route and chunk. No dependencies were added. |
 | 2026-11-03 | Completed Step 4 frontend structure: sign-in/register pages, explicit unavailable-auth context, protected dashboard route with dev preview, responsive empty-state dashboard, public locally validated trip planner, and not-found route. Frontend TypeScript/production build and backend build passed. Browser checks covered route navigation, validation, password visibility/confirmation, protected redirect, no API requests or console errors, and 390/768/1440 px layouts with no horizontal overflow. Production bundle excludes development preview routes. No dependencies added; backend auth, account/trip persistence, and live search remain pending. |
+| 2026-11-03 | Implemented Phase 2 authentication and trip persistence: bcrypt/JWT registration/login/current-user APIs, Mongoose user/trip models, owner-scoped trip CRUD, strict validation, safe placeholder-aware MongoDB startup, session-scoped frontend auth, connected dashboard and trip creation, and isolated MongoMemoryServer/Supertest tests (6 passing). Frontend and backend builds passed. Browser E2E against a separate in-memory MongoDB verified registration, sign-in, trip creation/listing, cross-account isolation, logout/token clearing, and protected redirects; route/forms/password visibility and 390/768/1440 px layouts were also checked without overflow. Development preview route strings are absent from production bundles. The placeholder-only server correctly returned 503 for database-backed operations; no live Atlas connection was attempted. Trip edit/delete UI, recovery/refresh, and data-retention policy remain pending. |
 
 ## Next recommended implementation step
 
-Continue Phase 2 by defining user/trip data contracts and security/privacy
-requirements, then implement backend registration/login, password hashing,
-JWT/session lifecycle, authorization, profile/trip APIs, and persistence before
-connecting the frontend auth context and dashboard.
+Complete Phase 2 by configuring deployment-managed Atlas/JWT secrets, verifying
+database connectivity in the intended environment, adding trip edit/delete UI,
+and agreeing on recovery, revocation, retention, and account-erasure policies.
+Then proceed to Phase 3 provider selection and sourced travel search.

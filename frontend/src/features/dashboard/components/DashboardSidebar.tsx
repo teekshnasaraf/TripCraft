@@ -15,12 +15,14 @@ const navigation = [
 ];
 
 interface DashboardSidebarProps {
-  preview?: boolean;
+  dashboardHref?: string;
 }
 
-export function DashboardSidebar({ preview = false }: DashboardSidebarProps) {
+export function DashboardSidebar({
+  dashboardHref = "/dashboard",
+}: DashboardSidebarProps) {
   const { pathname, hash } = useLocation();
-  const dashboardPath = preview ? "/dev/dashboard-preview" : "/dashboard";
+  const dashboardPath = dashboardHref;
 
   return (
     <nav

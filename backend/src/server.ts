@@ -11,6 +11,7 @@ async function startServer(): Promise<void> {
 }
 
 startServer().catch((error: unknown) => {
-  console.error("Failed to start TripCraft API:", error);
+  const errorName = error instanceof Error ? error.name : "UnknownError";
+  console.error(`Failed to start TripCraft API (${errorName}).`);
   process.exitCode = 1;
 });

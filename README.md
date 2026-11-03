@@ -24,12 +24,11 @@ reserve rooms, or take payment.
 Planned capabilities include trip management, travel search and comparison,
 AI-assisted itinerary generation, budget optimisation, saved trips, price
 tracking, and group planning. The application includes an informational landing
-page, local-only sign-in and registration forms, a trip-planning form, a
-protected dashboard route with a development preview, and a backend foundation
-with a single API health endpoint. Authentication, registration, trip creation,
-and live search are not connected: forms validate locally and do not send
-requests or store data. No prices, availability, ratings, or booking results
-are displayed.
+page, API-connected registration and sign-in, a protected dashboard, and a
+trip-planning form that saves user-owned trips. The backend provides JWT
+authentication, MongoDB persistence, and user-scoped trip CRUD APIs. Travel
+provider search, live availability, prices, ratings, and booking are not
+implemented.
 
 ## Technology stack
 
@@ -44,10 +43,10 @@ are displayed.
 ## Architecture
 
 The repository contains separate frontend and backend npm workspaces. The
-frontend has a shared Axios client configured for the future REST API, but the
-current pages make no product API calls. The backend is organised into route,
-middleware, configuration, and service boundaries. Planned travel integrations
-will be implemented as independent provider adapters that map provider-specific
+frontend uses a shared Axios client and TanStack Query for authenticated API
+calls. The backend is organised into route, middleware, controller, model,
+configuration, and service boundaries. Planned travel integrations will be
+implemented as independent provider adapters that map provider-specific
 responses into common TripCraft types. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for implemented and planned
 boundaries.
@@ -82,7 +81,8 @@ TripCraft/
 │       │   │   ├── components/
 │       │   │   ├── context/
 │       │   │   ├── hooks/
-│       │   │   └── pages/
+│       │   │   ├── pages/
+│       │   │   └── services/
 │       │   ├── dashboard/
 │       │   │   ├── components/
 │       │   │   └── pages/
@@ -111,14 +111,16 @@ features are implemented; empty placeholder files are intentionally avoided.
 | Route | Purpose |
 | --- | --- |
 | `/` | Informational landing page. |
-| `/sign-in`, `/register` | Client-validated forms; authentication and account creation are not connected. |
-| `/dashboard` | Protected dashboard; redirects to sign-in while no authenticated session exists. |
-| `/plan-trip` | Public, locally validated trip-planning form; does not save or search. |
+| `/sign-in`, `/register` | Validated forms connected to backend JWT authentication. |
+| `/dashboard` | Protected dashboard with the signed-in user's trip list and account-scoped overview. |
+| `/plan-trip` | Validated public form; saving a trip requires authentication. No travel search occurs. |
 | `*` | Not-found page. |
 | `/dev/design-system`, `/dev/dashboard-preview` | Development-only previews, excluded from production routing. |
 
-The auth context has no simulated user or session. Its login/logout operations
-remain unavailable until backend authentication is implemented; see
+The auth context restores a tab-scoped JWT from `sessionStorage` by requesting
+the current user. Sign-in and registration call the backend; logout clears the
+local token. Refresh-token rotation, server-side logout/revocation, password
+recovery, and email verification are not implemented. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Prerequisites
@@ -138,11 +140,21 @@ Copy-Item frontend\.env.example frontend\.env
 Copy-Item backend\.env.example backend\.env
 ```
 
-Set `VITE_API_BASE_URL` in `frontend/.env` and `PORT`, `CLIENT_URL`, and
-optionally `MONGODB_URI` in `backend/.env` as needed. Do not commit `.env` files.
-The frontend default points to `http://localhost:5000/api`. Without a MongoDB
-URI, the backend starts in development mode and reports that database
-connectivity has not been established.
+Set `VITE_API_BASE_URL` in `frontend/.env`. Configure `PORT`, `CLIENT_URL`,
+`MONGODB_URI`, `JWT_SECRET`, and `JWT_EXPIRES_IN` in `backend/.env` as needed.
+The committed backend environment template is deliberately non-connectable:
+replace the Atlas username/cluster placeholders and `<db_password>` before
+starting database-backed features. Do not commit `.env` files. URL-encode
+reserved characters in the database password when placing it in the URI. Create
+a strong JWT secret locally, for example:
+
+```powershell
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+The frontend defaults to `http://localhost:5000/api`. The backend still starts
+when the MongoDB URI is absent or contains placeholders, but account and trip
+routes return `503` until MongoDB and a valid JWT secret are configured.
 
 ## Run the applications
 
@@ -162,6 +174,13 @@ To build both workspaces:
 npm run build
 ```
 
+Run isolated backend API integration tests against an ephemeral
+`mongodb-memory-server` database (never your configured Atlas database):
+
+```powershell
+npm run test:backend
+```
+
 To start the compiled backend:
 
 ```powershell
@@ -178,7 +197,8 @@ npm run start --workspace @tripcraft/backend
 | `NODE_ENV` | Backend | `development`, `test`, or `production` |
 | `CLIENT_URL` | Backend | Allowed frontend origin for CORS |
 | `MONGODB_URI` | Backend | Optional MongoDB connection string |
-| `JWT_SECRET` | Backend | Reserved for future authentication; not currently used |
+| `JWT_SECRET` | Backend | Strong secret used to sign access tokens (at least 32 bytes) |
+| `JWT_EXPIRES_IN` | Backend | Access-token expiry duration such as `15m` (default `15m`) |
 
 The committed `.env.example` files contain placeholders only.
 
@@ -197,7 +217,8 @@ platforms rather than handling bookings itself.
 ## Project status
 
 **Implemented:** Phase 1 foundation, reusable design system, landing page, and
-Phase 2 frontend page/routing structure. The frontend forms are previews only;
-the only API endpoint is `GET /api/health`. Backend authentication, database
-models, user/trip persistence, provider integrations, AI, and live trip search
-are not implemented.
+Phase 2 authentication, user-owned trip APIs, frontend integration, and
+isolated backend tests. Atlas connectivity has not been verified because the
+committed/local environment values are placeholders. Travel-provider
+integrations, AI, live trip search, saved destinations, and booking are not
+implemented.

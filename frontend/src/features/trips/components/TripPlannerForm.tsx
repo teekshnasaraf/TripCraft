@@ -1,7 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
 import { Input } from "../../../components/ui/Input";
+import { apiClient } from "../../../services/apiClient";
+import { getApiErrorMessage } from "../../../services/apiError";
 
 const travelPreferences = [
   "Adventure",
@@ -20,6 +24,23 @@ const tripStyles = [
   "Balanced Experience",
   "Premium Experience",
 ];
+
+const interestValues: Record<string, string> = {
+  Adventure: "adventure",
+  Relaxation: "relaxation",
+  "Culture and history": "culture",
+  Food: "food",
+  Nature: "nature",
+  Shopping: "shopping",
+  Nightlife: "nightlife",
+  Sightseeing: "sightseeing",
+};
+
+const tripStyleValues: Record<string, string> = {
+  "Budget Explorer": "budget_explorer",
+  "Balanced Experience": "balanced_experience",
+  "Premium Experience": "premium_experience",
+};
 
 interface TripPlannerValues {
   origin: string;
@@ -99,11 +120,15 @@ function validate(values: TripPlannerValues): PlannerErrors {
 export function TripPlannerForm() {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<PlannerErrors>({});
-  const [submissionMessage, setSubmissionMessage] = useState("");
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionInProgress = useRef(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   function updateField(field: PlannerField, value: string | string[]) {
     setValues((current) => ({ ...current, [field]: value }));
-    setSubmissionMessage("");
+    setFormError("");
     setErrors((current) => {
       const next = { ...current };
       delete next[field];
@@ -119,16 +144,53 @@ export function TripPlannerForm() {
     });
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submissionInProgress.current) {
+      return;
+    }
+
     const nextErrors = validate(values);
     setErrors(nextErrors);
-    setSubmissionMessage("");
+    setFormError("");
 
-    if (Object.keys(nextErrors).length === 0) {
-      setSubmissionMessage(
-        "Your preferences are valid. Trip creation and live search are not connected yet; no trip was saved and no travel availability was checked.",
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
+    submissionInProgress.current = true;
+    setIsSubmitting(true);
+    try {
+      await apiClient.post("/trips", {
+        origin: values.origin.trim(),
+        destination: values.destination.trim(),
+        departureDate: values.departureDate,
+        returnDate: values.returnDate,
+        travellers: {
+          adults: Number(values.adults),
+          children: Number(values.children),
+        },
+        budget: {
+          amount: Number(values.budget),
+          currency: "INR",
+        },
+        interests: values.preferences.map(
+          (preference) => interestValues[preference],
+        ),
+        accommodation: values.accommodation.toLowerCase(),
+        tripStyle: tripStyleValues[values.tripStyle],
+      });
+      queryClient.removeQueries({ queryKey: ["trips"] });
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      const message = getApiErrorMessage(
+        error,
+        "Trip could not be created. Please try again.",
       );
+      setFormError(message);
+    } finally {
+      submissionInProgress.current = false;
+      setIsSubmitting(false);
     }
   }
 
@@ -358,15 +420,23 @@ export function TripPlannerForm() {
         </fieldset>
       </Card>
 
-      {submissionMessage && (
-        <p
-          role="status"
-          className="rounded-control border border-secondary-teal/30 bg-mint-background p-4 text-small-label leading-relaxed text-primary-dark"
+      {formError && (
+        <div
+          role="alert"
+          className="rounded-control border border-error/30 bg-error/5 p-4 text-small-label leading-relaxed text-error-text"
         >
-          {submissionMessage}
-        </p>
+          <p>{formError}</p>
+          {formError.toLowerCase().includes("authentication") && (
+            <Link
+              to="/sign-in"
+              className="mt-2 inline-block font-semibold underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
+            >
+              Sign in to save this trip
+            </Link>
+          )}
+        </div>
       )}
-      <Button type="submit" size="large" fullWidth>
+      <Button type="submit" size="large" fullWidth loading={isSubmitting}>
         Create Trip
       </Button>
     </form>

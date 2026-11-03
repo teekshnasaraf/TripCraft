@@ -2,15 +2,16 @@ import type { PropsWithChildren } from "react";
 import { Footer } from "../../../components/layout/Footer";
 import { Navbar } from "../../../components/layout/Navbar";
 import { Container } from "../../../components/ui/Container";
-import { DashboardHeader } from "./DashboardHeader";
 import { DashboardSidebar } from "./DashboardSidebar";
 
 interface DashboardLayoutProps extends PropsWithChildren {
   preview?: boolean;
+  dashboardHref?: string;
 }
 
 export function DashboardLayout({
   preview = false,
+  dashboardHref,
   children,
 }: DashboardLayoutProps) {
   return (
@@ -32,9 +33,8 @@ export function DashboardLayout({
               not connected.
             </p>
           )}
-          <DashboardHeader />
           <div className="grid items-start gap-6 tablet:grid-cols-[15rem_minmax(0,1fr)] tablet:gap-8">
-            <DashboardSidebar preview={preview} />
+            <DashboardSidebar dashboardHref={dashboardHref} />
             <div className="min-w-0">{children}</div>
           </div>
         </Container>

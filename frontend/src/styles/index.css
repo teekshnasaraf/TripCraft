@@ -127,10 +127,6 @@ select {
   font: inherit;
 }
 
-a {
-  color: inherit;
-}
-
 .transition-standard {
   transition-property:
     background-color, border-color, color, box-shadow, opacity, transform;

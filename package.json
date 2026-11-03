@@ -9,6 +9,7 @@
   "scripts": {
     "dev:frontend": "npm run dev --workspace @tripcraft/frontend",
     "dev:backend": "npm run dev --workspace @tripcraft/backend",
+    "test:backend": "npm run test --workspace @tripcraft/backend",
     "build": "npm run build --workspaces"
   }
 }
