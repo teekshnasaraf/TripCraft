@@ -1,4 +1,7 @@
 import { model, Schema, Types } from "mongoose";
+import type {
+  SavedTravelSelection,
+} from "../integrations/travel/contracts.js";
 
 export const tripInterests = [
   "adventure",
@@ -31,6 +34,11 @@ export const tripStatuses = [
   "cancelled",
 ] as const;
 
+export interface TripSelectionDocument
+  extends Omit<SavedTravelSelection, "savedAt"> {
+  savedAt: Date;
+}
+
 export interface TripDocument {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
@@ -51,6 +59,7 @@ export interface TripDocument {
   accommodation: (typeof accommodationOptions)[number];
   tripStyle: (typeof tripStyles)[number];
   status: (typeof tripStatuses)[number];
+  selections: TripSelectionDocument[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -144,6 +153,29 @@ const tripSchema = new Schema<TripDocument>(
       enum: tripStatuses,
       default: "draft",
       required: true,
+    },
+    selections: {
+      type: [
+        new Schema(
+          {
+            id: { type: String, required: true },
+            category: {
+              type: String,
+              enum: ["hotels", "flights", "trains", "destinations"],
+              required: true,
+            },
+            optionId: { type: String, required: true },
+            name: { type: String, required: true },
+            provider: { type: String, required: true },
+            dataMode: { type: String, enum: ["demo", "live"], required: true },
+            price: { type: Schema.Types.Mixed, default: null },
+            priceDisclosure: { type: String, required: true },
+            savedAt: { type: Date, required: true },
+          },
+          { _id: false, strict: "throw" },
+        ),
+      ],
+      default: [],
     },
   },
   {

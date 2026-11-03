@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { Trip, type TripDocument } from "../models/Trip.js";
+import type { SavedTravelSelection } from "../integrations/travel/contracts.js";
 import { AppError } from "../utils/AppError.js";
 import type { TripInput } from "../validators/trip.js";
 
@@ -22,6 +23,7 @@ export interface TripResponse {
   accommodation: string;
   tripStyle: string;
   status: string;
+  selections: SavedTravelSelection[];
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +42,17 @@ export function toTripResponse(trip: TripDocument): TripResponse {
     accommodation: trip.accommodation,
     tripStyle: trip.tripStyle,
     status: trip.status,
+    selections: trip.selections.map((selection) => ({
+      id: selection.id,
+      category: selection.category,
+      optionId: selection.optionId,
+      name: selection.name,
+      provider: selection.provider,
+      dataMode: selection.dataMode,
+      price: selection.price ?? null,
+      priceDisclosure: selection.priceDisclosure,
+      savedAt: new Date(selection.savedAt).toISOString(),
+    })),
     createdAt: trip.createdAt.toISOString(),
     updatedAt: trip.updatedAt.toISOString(),
   };

@@ -25,10 +25,11 @@ Planned capabilities include trip management, travel search and comparison,
 AI-assisted itinerary generation, budget optimisation, saved trips, price
 tracking, and group planning. The application includes an informational landing
 page, API-connected registration and sign-in, a protected dashboard, and a
-trip-planning form that saves user-owned trips. The backend provides JWT
-authentication, MongoDB persistence, and user-scoped trip CRUD APIs. Travel
-provider search, live availability, prices, ratings, and booking are not
-implemented.
+trip-planning workspace with owner-scoped demo search, comparisons, and saved
+selections. The backend provides JWT authentication, MongoDB persistence, and
+user-scoped trip APIs. No live travel provider, availability, ratings, or
+booking integration is configured; workspace examples are explicitly marked
+demo data.
 
 ## Technology stack
 
@@ -63,7 +64,11 @@ TripCraft/
 │   │   ├── models/
 │   │   ├── routes/
 │   │   ├── services/
-│   │   ├── integrations/providers/
+│   │   ├── integrations/
+│   │   │   └── travel/
+│   │   │       ├── contracts.ts
+│   │   │       ├── providerRegistry.ts
+│   │   │       └── providers/
 │   │   ├── utils/
 │   │   ├── types/
 │   │   ├── app.ts
@@ -113,7 +118,8 @@ features are implemented; empty placeholder files are intentionally avoided.
 | `/` | Informational landing page. |
 | `/sign-in`, `/register` | Validated forms connected to backend JWT authentication. |
 | `/dashboard` | Protected dashboard with the signed-in user's trip list and account-scoped overview. |
-| `/plan-trip` | Validated public form; saving a trip requires authentication. No travel search occurs. |
+| `/trips/:tripId` | Protected workspace for owner-checked demo search, recommendations, and persisted selections. |
+| `/plan-trip` | Validated public form; saving a trip requires authentication. |
 | `*` | Not-found page. |
 | `/dev/design-system`, `/dev/dashboard-preview` | Development-only previews, excluded from production routing. |
 
@@ -122,6 +128,13 @@ the current user. Sign-in and registration call the backend; logout clears the
 local token. Refresh-token rotation, server-side logout/revocation, password
 recovery, and email verification are not implemented. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+Travel search currently uses a small server-side demo catalogue for selected
+sample routes and destinations. It does not call MakeMyTrip, Goibibo,
+Booking.com, Agoda, Cleartrip, airline, IRCTC, mapping, or other providers.
+Displayed sample amounts are not current offers; availability, ratings, dates,
+taxes, and booking URLs are unknown. No user-supplied price is trusted when
+saving a selection.
 
 ## Prerequisites
 

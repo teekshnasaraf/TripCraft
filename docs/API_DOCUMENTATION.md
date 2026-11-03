@@ -160,8 +160,9 @@ today's trips in `draft` or `planned` status.
 
 ### `GET /api/trips/:id`
 
-Returns the matching trip for the authenticated owner. Invalid MongoDB
-ObjectIds return `400`; missing or other users' trips return `404`.
+Returns the matching trip, including saved selections, for the authenticated
+owner. Invalid MongoDB ObjectIds return `400`; missing or other users' trips
+return `404`.
 
 ### `PATCH /api/trips/:id`
 
@@ -176,6 +177,66 @@ Deletes the matching trip only when it belongs to the authenticated user.
 Returns `200 OK` with a success message. A trip belonging to another user is
 reported as `404`, not disclosed.
 
+## Trip workspace and travel discovery
+
+These endpoints require authentication and verify that the trip belongs to the
+authenticated user. The current provider registry contains only a clearly
+labelled TripCraft demo catalogue. It does not call MakeMyTrip, Goibibo,
+Booking.com, Agoda, Cleartrip, airline, IRCTC, or location providers.
+
+### `POST /api/trips/:id/search/:category`
+
+Searches demo options for the saved trip. Supported categories are `hotels`,
+`flights`, `trains`, and `destinations`. Dates and traveller counts are taken
+from the saved trip, not trusted from the request body. The response includes
+`dataMode: "demo"` and a message that sample prices are illustrative,
+availability is unknown, and booking is unavailable.
+It also includes `providerErrors`, an array describing any registered sources
+that failed when other providers still returned results. If every source fails,
+the endpoint returns `503` rather than an empty success response.
+
+Category-specific optional filter body fields:
+
+| Category | Filters |
+| --- | --- |
+| `hotels` | `maxBudget`, `minimumRating` (0–5), `rooms` (1–10), `accommodationType`, `amenities` (string array) |
+| `flights` | `maxBudget`, `directOnly`, `airline`, `cabinClass`, `departurePeriod` |
+| `trains` | `maxBudget`, `trainClass`, `departurePeriod` |
+| `destinations` | `placeType` |
+
+Results use a normalized shape with category, name, source, demo/live mode,
+destination, optional INR amount/scope/tax inclusion, price disclosure,
+availability, optional attributes, and response retrieval timestamp. In this
+demo version all ratings, review counts, and booking URLs are `null`;
+availability is `unknown`. A retrieval timestamp identifies response
+generation only, not vendor data freshness. The demo catalog has fixtures for
+selected Jaipur and Goa routes/places only.
+
+### `POST /api/trips/:id/selections`
+
+Persists a selection by `category` and `optionId`; price or offer details
+supplied by a client are rejected. The matching provider adapter resolves the
+option server-side and verifies it against the trip's route. The current
+registry contains only demo catalogue options.
+Selecting a hotel replaces the previous hotel; selecting a flight or train
+replaces either existing transport selection; multiple destination selections
+are allowed. Repeating the same selection does not duplicate it.
+
+### `DELETE /api/trips/:id/selections/:category/:optionId`
+
+Removes one selection owned by the trip. A missing selection returns `404`.
+
+### `GET /api/trips/:id/recommendations`
+
+Returns deterministic `Budget Explorer`, `Balanced Experience`, and `Premium
+Experience` demo combinations where fixture routes match. Each combines one
+sample hotel with either one flight or one train, never both. Ranking uses
+sample amounts only; no rating, comfort, location, or convenience score is
+available. Responses explicitly mark `complete: false`, identify amounts as
+known sample amounts, and list excluded costs. Remaining budget is before
+unpriced costs and is not a full-trip budget guarantee. No matching catalog
+data returns an empty recommendation list.
+
 ## Error responses
 
 Errors use `{ "success": false, "message": "..." }`. Common statuses:
@@ -186,7 +247,7 @@ Errors use `{ "success": false, "message": "..." }`. Common statuses:
 | `401` | Missing, invalid, or expired authentication |
 | `404` | Unknown route or trip not available to this user |
 | `409` | Duplicate account email |
-| `503` | Database disconnected or authentication configuration unavailable |
+| `503` | Database/authentication unavailable or provider search/selection unavailable |
 | `500` | Unexpected server error |
 
 Unknown routes return `404` JSON. Error logs contain error class names, not
@@ -195,6 +256,7 @@ request credentials, MongoDB URIs, or JWT values.
 ## Not implemented
 
 User profile editing/deletion, password recovery, email verification, refresh
-tokens, saved destinations, travel-provider search, flight/hotel/activity
-offers, itineraries, budget optimisation, maps, booking, and payment are not
-implemented.
+tokens, real provider search or offers, live availability/ratings, cross-provider
+property equivalence, complete cost estimates, itineraries, maps, booking, and
+payment are not implemented. Destination selections are scoped to a trip;
+there is no separate saved-destinations library.

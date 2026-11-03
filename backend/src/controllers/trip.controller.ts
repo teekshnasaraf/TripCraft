@@ -9,6 +9,17 @@ import {
 } from "../services/trip.service.js";
 import { AppError } from "../utils/AppError.js";
 import { parseTripInput } from "../validators/trip.js";
+import {
+  parseSelectionInput,
+  parseTravelCategory,
+  parseTravelSearchFilters,
+} from "../validators/travel.js";
+import {
+  getTripRecommendations as getTripRecommendationsService,
+  removeTravelSelection as removeTravelSelectionService,
+  saveTravelSelection as saveTravelSelectionService,
+  searchTravelOptions as searchTravelOptionsService,
+} from "../services/travel.service.js";
 
 function getUserId(request: Parameters<RequestHandler>[0]): string {
   if (!request.authUser) {
@@ -98,5 +109,69 @@ export const deleteTrip: RequestHandler = async (request, response) => {
   response.status(200).json({
     success: true,
     message: "Trip deleted successfully.",
+  });
+};
+
+export const searchTravelOptions: RequestHandler = async (request, response) => {
+  const tripId = getTripId(request.params.id);
+  const category = parseTravelCategory(request.params.category);
+  const filters = parseTravelSearchFilters(category, request.body ?? {});
+  const result = await searchTravelOptionsService(
+    getUserId(request),
+    tripId,
+    category,
+    filters,
+  );
+  response.status(200).json({ success: true, data: result });
+};
+
+export const getTripRecommendations: RequestHandler = async (
+  request,
+  response,
+) => {
+  const recommendations = await getTripRecommendationsService(
+    getUserId(request),
+    getTripId(request.params.id),
+  );
+  response.status(200).json({
+    success: true,
+    data: { recommendations },
+  });
+};
+
+export const saveTravelSelection: RequestHandler = async (request, response) => {
+  const { category, optionId } = parseSelectionInput(request.body);
+  const selections = await saveTravelSelectionService(
+    getUserId(request),
+    getTripId(request.params.id),
+    category,
+    optionId,
+  );
+  response.status(200).json({
+    success: true,
+    message: "Selection saved.",
+    data: { selections },
+  });
+};
+
+export const removeTravelSelection: RequestHandler = async (
+  request,
+  response,
+) => {
+  const category = parseTravelCategory(request.params.category);
+  const optionId = request.params.optionId;
+  if (typeof optionId !== "string" || !/^[a-z0-9-]{1,100}$/.test(optionId)) {
+    throw new AppError(400, "Selection option ID is invalid.");
+  }
+  const selections = await removeTravelSelectionService(
+    getUserId(request),
+    getTripId(request.params.id),
+    category,
+    optionId,
+  );
+  response.status(200).json({
+    success: true,
+    message: "Selection removed.",
+    data: { selections },
   });
 };

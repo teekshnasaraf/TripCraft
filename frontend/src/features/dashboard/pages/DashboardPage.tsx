@@ -86,7 +86,12 @@ function TripCard({ trip }: { trip: TripSummary }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-subheading font-semibold text-primary-text">
-            {trip.title}
+            <Link
+              to={`/trips/${trip.id}`}
+              className="rounded-control underline-offset-2 hover:text-secondary-teal hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-teal"
+            >
+              {trip.title}
+            </Link>
           </h3>
           <p className="mt-1 text-small-label text-secondary-text">
             {trip.origin} to {trip.destination}

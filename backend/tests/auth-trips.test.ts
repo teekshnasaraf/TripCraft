@@ -9,6 +9,7 @@ import request from "supertest";
 import type { Express } from "express";
 import { Trip } from "../src/models/Trip.js";
 import { User } from "../src/models/User.js";
+import { executeProviderSearch } from "../src/services/travel.service.js";
 
 process.env.NODE_ENV = "test";
 process.env.JWT_SECRET = randomBytes(32).toString("hex");
@@ -292,6 +293,248 @@ test("validates trip payloads, nested fields, dates, ownership, and identifiers"
     .set("Content-Type", "application/json")
     .send('{"name":');
   assert.equal(malformedJson.status, 400);
+});
+
+test("searches clearly labeled demo options and enforces owner-scoped selection persistence", async () => {
+  const owner = await registerAccount();
+  const otherUser = await registerAccount();
+  const created = await request(app)
+    .post("/api/trips")
+    .set(authorization(owner.token))
+    .send(validTrip);
+  const tripId = created.body.data.trip.id as string;
+
+  const hotels = await request(app)
+    .post(`/api/trips/${tripId}/search/hotels`)
+    .set(authorization(owner.token))
+    .send({});
+  assert.equal(hotels.status, 200);
+  assert.equal(hotels.body.data.dataMode, "demo");
+  assert.equal(hotels.body.data.results.length, 2);
+  assert.equal(hotels.body.data.results[0].rating, null);
+  assert.equal(hotels.body.data.results[0].availability, "unknown");
+  assert.equal(hotels.body.data.results[0].bookingUrl, null);
+  const multipleRooms = await request(app)
+    .post(`/api/trips/${tripId}/search/hotels`)
+    .set(authorization(owner.token))
+    .send({ rooms: 2 });
+  assert.equal(multipleRooms.status, 200);
+  assert.equal(
+    multipleRooms.body.data.results[0].attributes.requestedRooms,
+    2,
+  );
+
+  const directFlights = await request(app)
+    .post(`/api/trips/${tripId}/search/flights`)
+    .set(authorization(owner.token))
+    .send({ directOnly: true });
+  assert.equal(directFlights.status, 200);
+  assert.equal(directFlights.body.data.results.length, 1);
+  assert.equal(directFlights.body.data.results[0].attributes.stops, 0);
+  const unavailableCabin = await request(app)
+    .post(`/api/trips/${tripId}/search/flights`)
+    .set(authorization(owner.token))
+    .send({ cabinClass: "business" });
+  assert.equal(unavailableCabin.status, 200);
+  assert.equal(unavailableCabin.body.data.results.length, 0);
+
+  const trains = await request(app)
+    .post(`/api/trips/${tripId}/search/trains`)
+    .set(authorization(owner.token))
+    .send({ trainClass: "sleeper" });
+  assert.equal(trains.status, 200);
+  assert.equal(trains.body.data.results.length, 1);
+  const minimumRating = await request(app)
+    .post(`/api/trips/${tripId}/search/hotels`)
+    .set(authorization(owner.token))
+    .send({ minimumRating: 4 });
+  assert.equal(minimumRating.status, 200);
+  assert.equal(minimumRating.body.data.results.length, 0);
+
+  const invalidFilter = await request(app)
+    .post(`/api/trips/${tripId}/search/hotels`)
+    .set(authorization(owner.token))
+    .send({ directOnly: true });
+  assert.equal(invalidFilter.status, 400);
+
+  const inaccessibleSearch = await request(app)
+    .post(`/api/trips/${tripId}/search/hotels`)
+    .set(authorization(otherUser.token))
+    .send({});
+  assert.equal(inaccessibleSearch.status, 404);
+
+  const savedHotel = await request(app)
+    .post(`/api/trips/${tripId}/selections`)
+    .set(authorization(owner.token))
+    .send({ category: "hotels", optionId: "demo-hotel-jaipur-standard" });
+  assert.equal(savedHotel.status, 200);
+  assert.equal(savedHotel.body.data.selections.length, 1);
+  assert.equal(savedHotel.body.data.selections[0].dataMode, "demo");
+  assert.equal("userId" in savedHotel.body.data.selections[0], false);
+  const duplicateHotel = await request(app)
+    .post(`/api/trips/${tripId}/selections`)
+    .set(authorization(owner.token))
+    .send({ category: "hotels", optionId: "demo-hotel-jaipur-standard" });
+  assert.equal(duplicateHotel.status, 200);
+  assert.equal(duplicateHotel.body.data.selections.length, 1);
+
+  await request(app)
+    .post(`/api/trips/${tripId}/selections`)
+    .set(authorization(owner.token))
+    .send({ category: "flights", optionId: "demo-flight-delhi-jaipur" })
+    .expect(200);
+  const savedTrain = await request(app)
+    .post(`/api/trips/${tripId}/selections`)
+    .set(authorization(owner.token))
+    .send({ category: "trains", optionId: "demo-train-delhi-jaipur" });
+  assert.equal(savedTrain.status, 200);
+  assert.deepEqual(
+    savedTrain.body.data.selections.map(
+      (selection: { category: string }) => selection.category,
+    ),
+    ["hotels", "trains"],
+  );
+
+  const invalidOption = await request(app)
+    .post(`/api/trips/${tripId}/selections`)
+    .set(authorization(owner.token))
+    .send({
+      category: "hotels",
+      optionId: "demo-hotel-jaipur-standard",
+      price: { amount: 1 },
+    });
+  assert.equal(invalidOption.status, 400);
+
+  const trip = await request(app)
+    .get(`/api/trips/${tripId}`)
+    .set(authorization(owner.token));
+  assert.equal(trip.status, 200);
+  assert.deepEqual(
+    trip.body.data.trip.selections.map(
+      (selection: { category: string }) => selection.category,
+    ),
+    ["hotels", "trains"],
+  );
+
+  const savedPlace = await request(app)
+    .post(`/api/trips/${tripId}/selections`)
+    .set(authorization(owner.token))
+    .send({
+      category: "destinations",
+      optionId: "demo-place-jaipur-hawa-mahal",
+    });
+  assert.equal(savedPlace.status, 200, JSON.stringify(savedPlace.body));
+  assert.equal(savedPlace.body.data.selections.length, 3);
+  assert.equal(
+    savedPlace.body.data.selections.find(
+      (selection: { category: string }) =>
+        selection.category === "destinations",
+    ).price,
+    null,
+  );
+
+  const recommendations = await request(app)
+    .get(`/api/trips/${tripId}/recommendations`)
+    .set(authorization(owner.token));
+  assert.equal(recommendations.status, 200);
+  assert.equal(recommendations.body.data.recommendations.length, 3);
+  for (const recommendation of recommendations.body.data.recommendations) {
+    assert.equal(recommendation.complete, false);
+    assert.ok(
+      !recommendation.options.some(
+        (option: { category: string }) => option.category === "flights",
+      ) ||
+        !recommendation.options.some(
+          (option: { category: string }) => option.category === "trains",
+        ),
+    );
+    assert.equal(recommendation.options.length, 2);
+  }
+  assert.equal(
+    recommendations.body.data.recommendations[0].knownSampleAmount,
+    10_050,
+  );
+
+  const removed = await request(app)
+    .delete(
+      `/api/trips/${tripId}/selections/trains/demo-train-delhi-jaipur`,
+    )
+    .set(authorization(owner.token));
+  assert.equal(removed.status, 200);
+  assert.deepEqual(
+    removed.body.data.selections.map(
+      (selection: { category: string }) => selection.category,
+    ),
+    ["hotels", "destinations"],
+  );
+
+  const inaccessibleSelection = await request(app)
+    .post(`/api/trips/${tripId}/selections`)
+    .set(authorization(otherUser.token))
+    .send({ category: "hotels", optionId: "demo-hotel-jaipur-standard" });
+  assert.equal(inaccessibleSelection.status, 404);
+});
+
+test("maps provider timeouts to an explicit service-unavailable error", async () => {
+  await assert.rejects(
+    executeProviderSearch(
+      {
+        id: "test-timeout",
+        category: "hotels",
+        dataMode: "demo",
+        search: () => new Promise(() => {}),
+        resolveOption: async () => undefined,
+      },
+      {
+        origin: "Delhi",
+        destination: "Jaipur",
+        departureDate: "2030-07-01",
+        returnDate: "2030-07-05",
+        adults: 1,
+        children: 0,
+      },
+      {},
+      1,
+    ),
+    (error: unknown) => {
+      assert.equal(
+        error instanceof Error ? error.message : "",
+        "Travel search provider timed out.",
+      );
+      return true;
+    },
+  );
+});
+
+test("maps provider failures to an explicit service-unavailable error", async () => {
+  await assert.rejects(
+    executeProviderSearch(
+      {
+        id: "test-failure",
+        category: "hotels",
+        dataMode: "demo",
+        search: async () => {
+          throw new Error("provider internals must not leak");
+        },
+        resolveOption: async () => undefined,
+      },
+      {
+        origin: "Delhi",
+        destination: "Jaipur",
+        departureDate: "2030-07-01",
+        returnDate: "2030-07-05",
+        adults: 1,
+        children: 0,
+      },
+    ),
+    (error: unknown) => {
+      assert.equal(
+        error instanceof Error ? error.message : "",
+        "Travel search provider is unavailable.",
+      );
+      return true;
+    },
+  );
 });
 
 test("returns service unavailable for database-backed requests when MongoDB is disconnected", async () => {

@@ -8,6 +8,10 @@ import HomePage from "../features/home/pages/HomePage";
 import NotFoundPage from "../features/home/pages/NotFoundPage";
 import TripPlannerPage from "../features/trips/pages/TripPlannerPage";
 
+const LazyTripWorkspacePage = lazy(
+  () => import("../features/trips/pages/TripWorkspacePage"),
+);
+
 const developmentRoutes = import.meta.env.DEV
   ? (() => {
       const DesignSystemPreview = lazy(
@@ -77,6 +81,25 @@ export const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <DashboardPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: "/trips/:tripId",
+    element: (
+      <RequireAuth>
+        <Suspense
+          fallback={
+            <main
+              className="flex min-h-screen items-center justify-center bg-main-background"
+              role="status"
+            >
+              Loading trip workspace…
+            </main>
+          }
+        >
+          <LazyTripWorkspacePage />
+        </Suspense>
       </RequireAuth>
     ),
   },
