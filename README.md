@@ -222,16 +222,30 @@ It tracks eight phases, their dependencies, implementation work, and verificatio
 
 ## Future integrations
 
-Provider integrations, mapping, and AI itinerary services are planned, not
-configured. Provider credentials and service choices will be evaluated in the
-phases that implement them. TripCraft will direct users to third-party booking
-platforms rather than handling bookings itself.
+The current hotel, flight, train, and destination catalogues are explicitly
+mock-only. No external travel API keys are required or configured, and no
+provider is represented as live. Before enabling a real source, TripCraft needs
+provider-specific partner accounts and written API access/approval for the
+selected products: hotel inventory (MakeMyTrip, Goibibo, Booking.com, Agoda, or
+Cleartrip), flight inventory/booking partners (MakeMyTrip, Cleartrip, ixigo,
+EaseMyTrip, Goibibo, or participating airlines), rail inventory (IRCTC or an
+authorised rail partner), and a licensed places/attractions source. Booking
+redirects also require provider-supplied, permitted URLs and any applicable
+affiliate/partner approval.
+
+No vendor environment-variable names have been defined because no provider
+contract has been selected. When approved integrations are chosen, credentials
+must be stored server-side under newly documented variables; never expose them
+through `VITE_*` settings. Mapping and AI itinerary services are also planned,
+not configured. TripCraft will direct users to third-party booking platforms
+rather than handling bookings itself.
 
 ## Project status
 
-**Implemented:** Phase 1 foundation, reusable design system, landing page, and
-Phase 2 authentication, user-owned trip APIs, frontend integration, and
-isolated backend tests. Atlas connectivity has not been verified because the
-committed/local environment values are placeholders. Travel-provider
-integrations, AI, live trip search, saved destinations, and booking are not
-implemented.
+**Implemented:** Phase 1 foundation, reusable design system, landing page,
+Phase 2 authentication and owner-scoped trip APIs, and the Step 6 provider-
+independent hotel/flight/train/destination demo workspace with persisted
+trip-scoped selections, comparisons, and explicitly incomplete sample
+recommendations. Atlas connectivity has not been verified because the
+committed/local environment values are placeholders. Live provider integrations,
+a standalone saved-destinations library, AI, and booking are not implemented.

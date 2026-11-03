@@ -258,5 +258,10 @@ request credentials, MongoDB URIs, or JWT values.
 User profile editing/deletion, password recovery, email verification, refresh
 tokens, real provider search or offers, live availability/ratings, cross-provider
 property equivalence, complete cost estimates, itineraries, maps, booking, and
-payment are not implemented. Destination selections are scoped to a trip;
-there is no separate saved-destinations library.
+payment are not implemented. Destination selections are saved and removed
+within a trip; there is no separate saved-destinations library. No vendor API
+keys or provider-specific environment variables are currently required. Live
+integrations require selected-provider accounts, authorised API/partner access,
+and approved provider-supplied booking links; exact credential variable names
+must be documented after partner contracts are selected. Do not put vendor
+secrets in frontend `VITE_*` configuration.

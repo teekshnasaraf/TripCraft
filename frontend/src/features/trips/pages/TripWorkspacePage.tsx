@@ -272,12 +272,18 @@ export default function TripWorkspacePage() {
         )
       );
     });
-  }, [activeCategory, searchMutation.data, sortBy, trip?.travellers.adults]);
+  }, [
+    activeCategory,
+    searchMutation.data,
+    sortBy,
+    trip?.travellers.adults,
+    trip?.travellers.children,
+  ]);
 
-  async function search(category: Category, filters: Record<string, unknown>) {
+  function search(category: Category, filters: Record<string, unknown>) {
     setNotice("");
     searchMutation.reset();
-    await searchMutation.mutateAsync({ category, filters });
+    searchMutation.mutate({ category, filters });
   }
 
   async function saveRecommendation(recommendation: Recommendation) {
@@ -948,13 +954,23 @@ export default function TripWorkspacePage() {
                               ? `${formatCurrency(option.price.amount)}${
                                   option.price.scope === "per_person"
                                     ? " per traveller, one way"
-                                    : " per stay"
+                                    : option.price.scope === "per_stay"
+                                      ? " per stay"
+                                      : " per journey"
                                 }`
                               : "Not provided"}
                           </p>
                           <p>
                             <span className="font-semibold">Availability:</span>{" "}
-                            Unknown
+                            {option.availability}
+                          </p>
+                          <p>
+                            <span className="font-semibold">Taxes:</span>{" "}
+                            {option.price
+                              ? option.price.includesTaxes
+                                ? "Included in the listed amount"
+                                : "Not included in the listed amount"
+                              : "Unknown"}
                           </p>
                           {activeCategory === "hotels" && (
                             <>

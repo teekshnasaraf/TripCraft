@@ -112,6 +112,23 @@ access, verify terms and coverage, keep credentials server-side, normalize
 vendor responses, enforce request cancellation/timeouts and rate limits, and
 test responses against provider contracts before enabling a live source.
 
+### External credentials and approvals
+
+The demo registry requires no hotel, airline, rail, mapping, or places API key.
+No live provider is connected, and there are no vendor-specific environment
+variables in the application today. A live rollout requires accounts and
+documented API/partner approval for each selected inventory source: hotel
+providers (MakeMyTrip, Goibibo, Booking.com, Agoda, or Cleartrip), flight
+booking/inventory providers (MakeMyTrip, Cleartrip, ixigo, EaseMyTrip, Goibibo,
+or participating airlines), and IRCTC or an authorised rail partner. A
+licensed places/attractions data source is needed for sourced discovery.
+Provider-supplied booking links and any affiliate redirects require permission
+under the relevant agreement. Exact secret names must be set only after those
+contracts are selected; store them on the backend, never in `VITE_*` variables.
+The current server configuration uses `MONGODB_URI` and `JWT_SECRET` for
+database-backed authenticated features; the frontend API location is configured
+with `VITE_API_BASE_URL`.
+
 ## Planned AI service architecture
 
 AI itinerary generation is planned behind a backend service boundary. The

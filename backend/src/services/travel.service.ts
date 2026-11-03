@@ -150,8 +150,7 @@ function matchesFilters(
 ): boolean {
   if (
     filters.maxBudget !== undefined &&
-    option.price &&
-    option.price.amount > filters.maxBudget
+    (!option.price || option.price.amount > filters.maxBudget)
   ) {
     return false;
   }

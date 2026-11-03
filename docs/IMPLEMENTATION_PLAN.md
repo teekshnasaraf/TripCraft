@@ -7,10 +7,10 @@ implementation; preserve the history rather than replacing the plan.
 ## Current project status
 
 - **Current phase:** Phase 3 – Travel Discovery and Comparison.
-- **Overall status:** Phases 1–2 and the initial Step 6 travel-workspace
-  foundation are implemented. The current provider registry is demo-only;
-  authorized provider access and a real MongoDB Atlas connection remain
-  unverified.
+- **Overall status:** Phases 1–2 and the Step 6 provider-independent
+  travel-workspace foundation are implemented. The current provider registry
+  is demo-only; authorized provider access and a real MongoDB Atlas connection
+  remain unverified.
 - **Booking model:** TripCraft will link users to external booking platforms;
   TripCraft will not process bookings or payments.
 - **Implemented product surface:** Informational landing page; JWT-backed
@@ -167,7 +167,8 @@ implementation; preserve the history rather than replacing the plan.
   - [x] Add deterministic sample combinations that choose either a flight or a
     train and disclose incomplete costs and price-only ranking.
   - [x] Test filtering, demo metadata, selection persistence/replacement,
-    duplicate handling, recommendation shape, and user ownership isolation.
+    duplicate handling, recommendation shape and price calculations, and user
+    ownership isolation.
   - [x] Verify the protected workspace, hotel/flight/train/destination search,
     selection flow, and responsive layouts at 390, 768, and 1440 px in browser.
   - [ ] Select authorized real providers and implement/test their actual APIs,
@@ -186,9 +187,11 @@ implementation; preserve the history rather than replacing the plan.
   searches and trips.
 - **Testing requirements:** Adapter contract tests, mocked provider tests,
   timeout/error/rate-limit tests, and end-to-end search checks.
-- **Current status:** In progress — the protected workspace, demo adapters,
-  owner-scoped search/selections, and isolated API tests are implemented.
-  No live provider is connected or claimed.
+- **Current status:** Step 6's provider-independent demo foundation is complete:
+  the protected workspace, demo adapters, owner-scoped search/selections, and
+  tested recommendations are implemented. Phase 3 remains in progress for
+  authorised live providers and vendor-backed data; none is connected or
+  claimed.
 
 ### PHASE 4 – Price Comparison Engine
 
@@ -410,7 +413,7 @@ implementation; preserve the history rather than replacing the plan.
 | 2026-11-03 | Completed the reusable frontend design system, semantic CSS/Tailwind v4 tokens, common and layout components, and a development-only preview. TypeScript and production builds passed; browser checks at 390, 768, and 1440 px found no horizontal overflow or console errors, and keyboard navigation worked. Production output excludes the preview route and chunk. No dependencies were added. |
 | 2026-11-03 | Completed Step 4 frontend structure: sign-in/register pages, explicit unavailable-auth context, protected dashboard route with dev preview, responsive empty-state dashboard, public locally validated trip planner, and not-found route. Frontend TypeScript/production build and backend build passed. Browser checks covered route navigation, validation, password visibility/confirmation, protected redirect, no API requests or console errors, and 390/768/1440 px layouts with no horizontal overflow. Production bundle excludes development preview routes. No dependencies added; backend auth, account/trip persistence, and live search remain pending. |
 | 2026-11-03 | Implemented Phase 2 authentication and trip persistence: bcrypt/JWT registration/login/current-user APIs, Mongoose user/trip models, owner-scoped trip CRUD, strict validation, safe placeholder-aware MongoDB startup, session-scoped frontend auth, connected dashboard and trip creation, and isolated MongoMemoryServer/Supertest tests (6 passing). Frontend and backend builds passed. Browser E2E against a separate in-memory MongoDB verified registration, sign-in, trip creation/listing, cross-account isolation, logout/token clearing, and protected redirects; route/forms/password visibility and 390/768/1440 px layouts were also checked without overflow. Development preview route strings are absent from production bundles. The placeholder-only server correctly returned 503 for database-backed operations; no live Atlas connection was attempted. Trip edit/delete UI, recovery/refresh, and data-retention policy remain pending. |
-| 2026-11-03 | Implemented Step 6 discovery foundation: normalized hotel/flight/train/destination provider contracts, a multi-adapter registry, and explicit demo adapters; owner-scoped search/recommendation/selection APIs; MongoDB-persisted server-resolved selections; and a protected responsive trip workspace. Provider failures are surfaced and provider selection resolution stays behind the adapter contract. Demo data has no live availability/ratings/booking URLs; price-only combinations disclose excluded costs. All 9 backend integration tests passed, including filters, selection ownership/replacement, recommendations, provider errors, and timeouts. Root frontend/backend builds passed. Browser verified protected redirects, category search/save flows, and no horizontal overflow at 390/768/1440 px; no page/console errors occurred during those checks. Actual vendor APIs and Atlas remain unconfigured. |
+| 2026-11-03 | Implemented the Step 6 provider-independent discovery foundation: normalized hotel/flight/train/destination contracts, demo adapters, owner-scoped APIs, persisted selections, and a responsive workspace. Recovery audit confirmed the committed `travel.service.ts` was complete and buildable. Follow-up fixes exclude unpriced offers from maximum-budget results and accurately label per-journey prices. All 10 backend integration tests and root frontend/backend production builds passed. Browser checks exercised authentication, all four discovery searches, selection save/remove and persistence after reload, and 390/768/1440 px layouts without horizontal overflow or browser console errors. No vendor APIs or Atlas credentials are configured. |
 
 ## Next recommended implementation step
 

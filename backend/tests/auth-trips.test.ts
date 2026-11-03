@@ -9,7 +9,9 @@ import request from "supertest";
 import type { Express } from "express";
 import { Trip } from "../src/models/Trip.js";
 import { User } from "../src/models/User.js";
+import { getDemoOptions } from "../src/integrations/travel/providers/demoCatalog.js";
 import { executeProviderSearch } from "../src/services/travel.service.js";
+import { travelProviders } from "../src/integrations/travel/providerRegistry.js";
 
 process.env.NODE_ENV = "test";
 process.env.JWT_SECRET = randomBytes(32).toString("hex");
@@ -311,9 +313,34 @@ test("searches clearly labeled demo options and enforces owner-scoped selection 
   assert.equal(hotels.status, 200);
   assert.equal(hotels.body.data.dataMode, "demo");
   assert.equal(hotels.body.data.results.length, 2);
+  assert.equal(hotels.body.data.results[0].category, "hotels");
+  assert.equal(hotels.body.data.results[0].provider, "TripCraft demo catalogue");
+  assert.equal(hotels.body.data.results[0].dataMode, "demo");
+  assert.equal(hotels.body.data.results[0].price.currency, "INR");
+  assert.equal(hotels.body.data.results[0].price.includesTaxes, false);
   assert.equal(hotels.body.data.results[0].rating, null);
   assert.equal(hotels.body.data.results[0].availability, "unknown");
   assert.equal(hotels.body.data.results[0].bookingUrl, null);
+  assert.equal(typeof hotels.body.data.results[0].retrievedAt, "string");
+  const hotelPriceLimit = await request(app)
+    .post(`/api/trips/${tripId}/search/hotels`)
+    .set(authorization(owner.token))
+    .send({ maxBudget: 10_000 });
+  assert.deepEqual(
+    hotelPriceLimit.body.data.results.map(
+      (option: { id: string }) => option.id,
+    ),
+    ["demo-hotel-jaipur-budget"],
+  );
+  const hotelAmenityFilter = await request(app)
+    .post(`/api/trips/${tripId}/search/hotels`)
+    .set(authorization(owner.token))
+    .send({ amenities: ["Restaurant"], accommodationType: "standard" });
+  assert.equal(hotelAmenityFilter.body.data.results.length, 1);
+  assert.equal(
+    hotelAmenityFilter.body.data.results[0].id,
+    "demo-hotel-jaipur-standard",
+  );
   const multipleRooms = await request(app)
     .post(`/api/trips/${tripId}/search/hotels`)
     .set(authorization(owner.token))
@@ -331,6 +358,16 @@ test("searches clearly labeled demo options and enforces owner-scoped selection 
   assert.equal(directFlights.status, 200);
   assert.equal(directFlights.body.data.results.length, 1);
   assert.equal(directFlights.body.data.results[0].attributes.stops, 0);
+  assert.equal(directFlights.body.data.results[0].price.scope, "per_person");
+  const airlineFilter = await request(app)
+    .post(`/api/trips/${tripId}/search/flights`)
+    .set(authorization(owner.token))
+    .send({ airline: "Sample", departurePeriod: "morning", maxBudget: 7_000 });
+  assert.equal(airlineFilter.body.data.results.length, 1);
+  assert.equal(
+    airlineFilter.body.data.results[0].attributes.airline,
+    "Sample carrier",
+  );
   const unavailableCabin = await request(app)
     .post(`/api/trips/${tripId}/search/flights`)
     .set(authorization(owner.token))
@@ -344,6 +381,21 @@ test("searches clearly labeled demo options and enforces owner-scoped selection 
     .send({ trainClass: "sleeper" });
   assert.equal(trains.status, 200);
   assert.equal(trains.body.data.results.length, 1);
+  assert.equal(trains.body.data.results[0].price.scope, "per_person");
+  assert.equal(trains.body.data.results[0].price.includesTaxes, true);
+  const trainPriceLimit = await request(app)
+    .post(`/api/trips/${tripId}/search/trains`)
+    .set(authorization(owner.token))
+    .send({ maxBudget: 1_000, departurePeriod: "morning" });
+  assert.equal(trainPriceLimit.body.data.results.length, 1);
+  const places = await request(app)
+    .post(`/api/trips/${tripId}/search/destinations`)
+    .set(authorization(owner.token))
+    .send({ placeType: "attraction" });
+  assert.equal(places.status, 200);
+  assert.equal(places.body.data.dataMode, "demo");
+  assert.equal(places.body.data.results[0].price, null);
+  assert.equal(places.body.data.results[0].attributes.coordinates, null);
   const minimumRating = await request(app)
     .post(`/api/trips/${tripId}/search/hotels`)
     .set(authorization(owner.token))
@@ -356,6 +408,11 @@ test("searches clearly labeled demo options and enforces owner-scoped selection 
     .set(authorization(owner.token))
     .send({ directOnly: true });
   assert.equal(invalidFilter.status, 400);
+  const invalidBudget = await request(app)
+    .post(`/api/trips/${tripId}/search/flights`)
+    .set(authorization(owner.token))
+    .send({ maxBudget: 0 });
+  assert.equal(invalidBudget.status, 400);
 
   const inaccessibleSearch = await request(app)
     .post(`/api/trips/${tripId}/search/hotels`)
@@ -454,6 +511,23 @@ test("searches clearly labeled demo options and enforces owner-scoped selection 
     recommendations.body.data.recommendations[0].knownSampleAmount,
     10_050,
   );
+  assert.equal(
+    recommendations.body.data.recommendations[0]
+      .remainingBudgetBeforeUnpricedCosts,
+    34_950,
+  );
+  assert.equal(
+    recommendations.body.data.recommendations[0].withinBudgetForPricedItems,
+    true,
+  );
+  assert.equal(
+    recommendations.body.data.recommendations[1].style,
+    "balanced_experience",
+  );
+  assert.equal(
+    recommendations.body.data.recommendations[2].style,
+    "premium_experience",
+  );
 
   const removed = await request(app)
     .delete(
@@ -504,6 +578,41 @@ test("maps provider timeouts to an explicit service-unavailable error", async ()
       return true;
     },
   );
+});
+
+test("does not treat an unpriced offer as within a maximum budget", async () => {
+  const account = await registerAccount();
+  const created = await request(app)
+    .post("/api/trips")
+    .set(authorization(account.token))
+    .send(validTrip);
+  const tripId = created.body.data.trip.id as string;
+  const previousProviders = travelProviders.hotels;
+  const unpricedOption = {
+    ...getDemoOptions("hotels")[0],
+    price: null,
+    retrievedAt: new Date().toISOString(),
+  };
+  travelProviders.hotels = [
+    {
+      id: "test-unpriced-hotels",
+      category: "hotels",
+      dataMode: "demo",
+      search: async () => [unpricedOption],
+      resolveOption: async () => undefined,
+    },
+  ];
+
+  try {
+    const response = await request(app)
+      .post(`/api/trips/${tripId}/search/hotels`)
+      .set(authorization(account.token))
+      .send({ maxBudget: 10_000 });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.data.results.length, 0);
+  } finally {
+    travelProviders.hotels = previousProviders;
+  }
 });
 
 test("maps provider failures to an explicit service-unavailable error", async () => {
