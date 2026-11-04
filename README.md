@@ -134,7 +134,10 @@ sample routes and destinations. It does not call MakeMyTrip, Goibibo,
 Booking.com, Agoda, Cleartrip, airline, IRCTC, mapping, or other providers.
 Displayed sample amounts are not current offers; availability, ratings, dates,
 taxes, and booking URLs are unknown. No user-supplied price is trusted when
-saving a selection.
+saving a selection. Recommendations combine a hotel with one transport option;
+unpriced options are excluded rather than counted as free. The balanced sample
+targets 70% of the trip budget using known prices only; quality and a complete
+trip cost are not implied.
 
 ## Prerequisites
 
@@ -249,3 +252,5 @@ trip-scoped selections, comparisons, and explicitly incomplete sample
 recommendations. Atlas connectivity has not been verified because the
 committed/local environment values are placeholders. Live provider integrations,
 a standalone saved-destinations library, AI, and booking are not implemented.
+The Step 6 provider adapters are interfaces plus demo fixtures only; no target
+hotel, airline, rail, or places provider is live.

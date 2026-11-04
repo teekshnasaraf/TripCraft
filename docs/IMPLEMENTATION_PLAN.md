@@ -165,10 +165,11 @@ implementation; preserve the history rather than replacing the plan.
   - [x] Add the protected responsive trip workspace, category navigation,
     category filters, result sorting, saved selections, and budget caveats.
   - [x] Add deterministic sample combinations that choose either a flight or a
-    train and disclose incomplete costs and price-only ranking.
+    train and disclose incomplete costs and price-only ranking; exclude
+    unpriced options rather than treating unknown costs as zero.
   - [x] Test filtering, demo metadata, selection persistence/replacement,
     duplicate handling, recommendation shape and price calculations, and user
-    ownership isolation.
+    ownership isolation, including recommendation exclusion for unknown prices.
   - [x] Verify the protected workspace, hotel/flight/train/destination search,
     selection flow, and responsive layouts at 390, 768, and 1440 px in browser.
   - [ ] Select authorized real providers and implement/test their actual APIs,
@@ -189,9 +190,11 @@ implementation; preserve the history rather than replacing the plan.
   timeout/error/rate-limit tests, and end-to-end search checks.
 - **Current status:** Step 6's provider-independent demo foundation is complete:
   the protected workspace, demo adapters, owner-scoped search/selections, and
-  tested recommendations are implemented. Phase 3 remains in progress for
-  authorised live providers and vendor-backed data; none is connected or
-  claimed.
+  tested recommendations are implemented. Recommendations rank complete
+  known-price demo hotel/transport combinations; Balanced Experience targets
+  70% of the trip budget and unknown prices are excluded, never treated as
+  zero. Phase 3 remains in progress for authorised live providers and
+  vendor-backed data; none is connected or claimed.
 
 ### PHASE 4 – Price Comparison Engine
 
@@ -372,9 +375,10 @@ implementation; preserve the history rather than replacing the plan.
 - `/trips/:tripId` searches only a finite TripCraft demo catalogue for selected
   Jaipur and Goa routes/places. Demo amounts are illustrative, not date-aware
   or bookable; availability, ratings, and vendor freshness are unknown.
-- Current recommendations rank demo sample combinations by amount only and
-  show an incomplete known-amount total. They do not model quality, taxes,
-  return fares, activities, or local transport.
+- Current recommendations rank demo sample combinations by displayed amount
+  and budget fit and show an incomplete known-amount total. The balanced sample
+  targets 70% of budget; unknown-price options are excluded. They do not model
+  quality, taxes, return fares, activities, or local transport.
 - Trip records can be read, edited, and deleted through owner-protected APIs;
   the dashboard UI currently exposes listing and creation, not editing or
   deletion.
@@ -414,6 +418,7 @@ implementation; preserve the history rather than replacing the plan.
 | 2026-11-03 | Completed Step 4 frontend structure: sign-in/register pages, explicit unavailable-auth context, protected dashboard route with dev preview, responsive empty-state dashboard, public locally validated trip planner, and not-found route. Frontend TypeScript/production build and backend build passed. Browser checks covered route navigation, validation, password visibility/confirmation, protected redirect, no API requests or console errors, and 390/768/1440 px layouts with no horizontal overflow. Production bundle excludes development preview routes. No dependencies added; backend auth, account/trip persistence, and live search remain pending. |
 | 2026-11-03 | Implemented Phase 2 authentication and trip persistence: bcrypt/JWT registration/login/current-user APIs, Mongoose user/trip models, owner-scoped trip CRUD, strict validation, safe placeholder-aware MongoDB startup, session-scoped frontend auth, connected dashboard and trip creation, and isolated MongoMemoryServer/Supertest tests (6 passing). Frontend and backend builds passed. Browser E2E against a separate in-memory MongoDB verified registration, sign-in, trip creation/listing, cross-account isolation, logout/token clearing, and protected redirects; route/forms/password visibility and 390/768/1440 px layouts were also checked without overflow. Development preview route strings are absent from production bundles. The placeholder-only server correctly returned 503 for database-backed operations; no live Atlas connection was attempted. Trip edit/delete UI, recovery/refresh, and data-retention policy remain pending. |
 | 2026-11-03 | Implemented the Step 6 provider-independent discovery foundation: normalized hotel/flight/train/destination contracts, demo adapters, owner-scoped APIs, persisted selections, and a responsive workspace. Recovery audit confirmed the committed `travel.service.ts` was complete and buildable. Follow-up fixes exclude unpriced offers from maximum-budget results and accurately label per-journey prices. All 10 backend integration tests and root frontend/backend production builds passed. Browser checks exercised authentication, all four discovery searches, selection save/remove and persistence after reload, and 390/768/1440 px layouts without horizontal overflow or browser console errors. No vendor APIs or Atlas credentials are configured. |
+| 2026-11-05 | Re-audited the clean `main` checkout after the prior AI review was undone: the Step 6 foundation was already present in commit `8a5e153` and the latest commit only changed seven files. Hardened recommendation pricing so unknown/non-finite prices are excluded instead of counted as zero, defined deterministic budget-targeted recommendation explanations, added distinct demo amounts/durations to exercise flight/train sorting, and corrected trip-planner copy that incorrectly said recommendations were not connected. Backend TypeScript build and all 12 backend integration tests pass. Browser checks against an isolated ephemeral MongoDB covered registration, trip creation, recommendations, all four discovery tabs, category filters, price/duration sorting, selection persistence after reload and removal, and 390/768/1440 px layouts without horizontal overflow or console errors. Live provider APIs and Atlas persistence remain unverified and are not claimed. |
 
 ## Next recommended implementation step
 

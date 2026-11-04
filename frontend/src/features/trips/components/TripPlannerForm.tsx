@@ -391,8 +391,8 @@ export function TripPlannerForm() {
               Trip style
             </h2>
             <p className="mt-1 text-small-label text-secondary-text">
-              Choose a planning preference. Recommendations are not connected
-              yet.
+              Choose a style to save with the trip. The workspace shows three
+              deterministic, price-based examples using demo data only.
             </p>
           </div>
         }

@@ -230,12 +230,18 @@ Removes one selection owned by the trip. A missing selection returns `404`.
 
 Returns deterministic `Budget Explorer`, `Balanced Experience`, and `Premium
 Experience` demo combinations where fixture routes match. Each combines one
-sample hotel with either one flight or one train, never both. Ranking uses
-sample amounts only; no rating, comfort, location, or convenience score is
-available. Responses explicitly mark `complete: false`, identify amounts as
-known sample amounts, and list excluded costs. Remaining budget is before
-unpriced costs and is not a full-trip budget guarantee. No matching catalog
-data returns an empty recommendation list.
+hotel with either one flight or one train, never both. Ranking uses fully priced
+combinations only; an option with a missing, invalid, or non-finite price is
+excluded rather than treated as free. Budget Explorer chooses the lowest priced
+combination, Balanced Experience chooses the affordable combination closest to
+70% of the trip budget, and Premium Experience chooses the highest priced
+combination within budget. If none fit, Budget Explorer and Balanced Experience
+use the lowest-priced combination and Premium Experience also reports that
+lowest-priced over-budget option. No rating, comfort, location, or convenience
+score is available. Responses explicitly mark `complete: false`, identify
+amounts as known sample amounts, and list excluded costs. Remaining budget is
+before unpriced costs and is not a full-trip budget guarantee. No matching
+priced catalogue combination returns an empty recommendation list.
 
 ## Error responses
 

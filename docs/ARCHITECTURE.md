@@ -143,10 +143,14 @@ The current comparison UI filters and sorts demo results. It does not merge
 similar properties across sources or assert equivalence of rooms, fare rules,
 or ticket conditions. Recommendation examples combine one sample hotel with
 either a sample flight or a sample train, never both. The deterministic
-selector ranks only by displayed sample amount; it does not score ratings,
-service quality, or convenience. Amounts are explicitly incomplete and do not
-claim a complete trip cost. Vendor-backed equivalence, comparison, and budget
-optimisation remain future work.
+selector uses complete known-price hotel/transport combinations: Budget Explorer
+chooses the lowest priced combination, Balanced Experience chooses the
+combination closest to 70% of the trip budget, and Premium Experience chooses
+the highest priced combination within budget (or the lowest priced combination
+if all exceed it). Options without a valid price are excluded, not counted as
+free. It does not score ratings, service quality, or convenience. Amounts are
+explicitly incomplete and do not claim a complete trip cost. Vendor-backed
+equivalence, comparison, and budget optimisation remain future work.
 
 ## Data flow
 

@@ -412,13 +412,22 @@ export async function removeTravelSelection(
   return trip.selections.map(serializeSelection);
 }
 
-function totalOptionAmount(option: TravelOption, travellerCount: number) {
-  if (!option.price) {
-    return 0;
+function totalOptionAmount(
+  option: TravelOption,
+  travellerCount: number,
+): number | undefined {
+  if (
+    !option.price ||
+    !Number.isFinite(option.price.amount) ||
+    option.price.amount < 0
+  ) {
+    return undefined;
   }
-  return option.price.scope === "per_person"
-    ? option.price.amount * travellerCount
-    : option.price.amount;
+  const amount =
+    option.price.scope === "per_person"
+      ? option.price.amount * travellerCount
+      : option.price.amount;
+  return Number.isFinite(amount) ? amount : undefined;
 }
 
 export async function getTripRecommendations(
@@ -449,61 +458,87 @@ export async function getTripRecommendations(
   const flights = flightSearch.results;
   const trains = trainSearch.results;
   const transportOptions = [...flights, ...trains];
+  const travellerCount = trip.travellers.adults + trip.travellers.children;
   const combinations = hotels.flatMap((hotel) =>
-    transportOptions.map((transport) => {
+    transportOptions.flatMap((transport) => {
       const options = [hotel, transport];
+      const amounts = options.map((option) =>
+        totalOptionAmount(option, travellerCount),
+      );
+      const pricedAmounts = amounts.filter(
+        (amount): amount is number => amount !== undefined,
+      );
+      if (pricedAmounts.length !== options.length) {
+        return [];
+      }
+      const amount = pricedAmounts.reduce((total, item) => total + item, 0);
+      if (!Number.isFinite(amount)) {
+        return [];
+      }
       return {
         options,
-        amount: options.reduce(
-          (total, option) =>
-            total +
-            totalOptionAmount(
-              option,
-              trip.travellers.adults + trip.travellers.children,
-            ),
-          0,
-        ),
+        amount,
       };
     }),
   );
   if (combinations.length === 0) {
     return [];
   }
+  const combinationKey = (combination: (typeof combinations)[number]) =>
+    combination.options.map((option) => option.id).join(":");
+  const byAmount = (
+    first: (typeof combinations)[number],
+    second: (typeof combinations)[number],
+  ) =>
+    first.amount - second.amount ||
+    combinationKey(first).localeCompare(combinationKey(second));
   const withinBudget = combinations.filter(
     (combination) => combination.amount <= trip.budget.amount,
   );
-  const ordered = [...combinations].sort((a, b) => a.amount - b.amount);
-  const affordable = withinBudget.length
-    ? [...withinBudget].sort((a, b) => a.amount - b.amount)
-    : ordered;
-  const budgetPick = affordable[0];
-  const middlePick = affordable[Math.floor((affordable.length - 1) / 2)];
-  const premiumPick = affordable[affordable.length - 1];
+  const ordered = [...combinations].sort(byAmount);
+  const affordable = [...withinBudget].sort(byAmount);
+  const budgetPick = ordered[0];
+  const balancedCandidates = affordable.length ? affordable : ordered;
+  const balancedTarget = trip.budget.amount * 0.7;
+  const balancedPick = [...balancedCandidates].sort(
+    (first, second) =>
+      Math.abs(first.amount - balancedTarget) -
+        Math.abs(second.amount - balancedTarget) ||
+      byAmount(first, second),
+  )[0];
+  const premiumPick = affordable.length
+    ? affordable[affordable.length - 1]
+    : ordered[0];
   const picks = [
     {
       style: "budget_explorer" as const,
       title: "Budget Explorer",
       combination: budgetPick,
-      reason: "Lowest priced sample combination in the demo catalogue.",
+      reason:
+        withinBudget.length > 0
+          ? "Lowest known-price combination in the catalogue that fits the trip budget."
+          : "Lowest known-price combination in the catalogue; it exceeds the trip budget.",
     },
     {
       style: "balanced_experience" as const,
       title: "Balanced Experience",
-      combination: middlePick,
-      reason:
-        "Middle-priced sample combination; comfort, reviews, and convenience are not scored.",
+      combination: balancedPick,
+      reason: withinBudget.length
+        ? "Known-price combination closest to 70% of the trip budget; ratings, comfort, and convenience are not scored."
+        : "Known-price combination closest to 70% of the trip budget; all priced combinations exceed the budget.",
     },
     {
       style: "premium_experience" as const,
       title: "Premium Experience",
       combination: premiumPick,
       reason: withinBudget.length
-        ? "Highest priced sample combination within the budget for priced items; no quality claim is made."
-        : "Lowest priced sample combination available, which exceeds the budget for priced items; no quality claim is made.",
+        ? "Highest known-price combination within the trip budget; no quality claim is made."
+        : "Lowest known-price combination available because all combinations exceed the budget; no quality claim is made.",
     },
   ];
   const limitations = [
     "All options and amounts are illustrative demo data, not live provider offers.",
+    "Combinations containing an option without a valid price are excluded from ranking rather than counted as zero.",
     "Transport samples are one-way and exclude any unpriced return journey.",
     "Per-person samples are multiplied by all travellers for illustration; child fares are not represented separately.",
     "Dates, taxes, fees, availability, ratings, activities, and local transport are not verified or included.",

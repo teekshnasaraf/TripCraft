@@ -91,6 +91,15 @@ after(async () => {
   await mongoServer.stop();
 });
 
+test("keeps every registered travel source in explicit demo mode", () => {
+  const providers = Object.values(travelProviders).flat();
+  assert.equal(providers.length, 4);
+  for (const provider of providers) {
+    assert.equal(provider.dataMode, "demo");
+    assert.ok(provider.id.startsWith("tripcraft-demo-"));
+  }
+});
+
 test("registers, hashes passwords, logs in, and returns a safe current-user profile", async () => {
   const account = await registerAccount();
   assert.equal(account.user.email, account.email.toLowerCase());
@@ -362,7 +371,7 @@ test("searches clearly labeled demo options and enforces owner-scoped selection 
   const airlineFilter = await request(app)
     .post(`/api/trips/${tripId}/search/flights`)
     .set(authorization(owner.token))
-    .send({ airline: "Sample", departurePeriod: "morning", maxBudget: 7_000 });
+    .send({ airline: "Sample", departurePeriod: "afternoon", maxBudget: 6_500 });
   assert.equal(airlineFilter.body.data.results.length, 1);
   assert.equal(
     airlineFilter.body.data.results[0].attributes.airline,
@@ -509,16 +518,28 @@ test("searches clearly labeled demo options and enforces owner-scoped selection 
   }
   assert.equal(
     recommendations.body.data.recommendations[0].knownSampleAmount,
-    10_050,
+    9_600,
   );
   assert.equal(
     recommendations.body.data.recommendations[0]
       .remainingBudgetBeforeUnpricedCosts,
-    34_950,
+    35_400,
   );
   assert.equal(
     recommendations.body.data.recommendations[0].withinBudgetForPricedItems,
     true,
+  );
+  assert.equal(
+    recommendations.body.data.recommendations[1].knownSampleAmount,
+    27_600,
+  );
+  assert.match(
+    recommendations.body.data.recommendations[1].explanation,
+    /closest to 70% of the trip budget/,
+  );
+  assert.equal(
+    recommendations.body.data.recommendations[2].knownSampleAmount,
+    37_200,
   );
   assert.equal(
     recommendations.body.data.recommendations[1].style,
@@ -612,6 +633,37 @@ test("does not treat an unpriced offer as within a maximum budget", async () => 
     assert.equal(response.body.data.results.length, 0);
   } finally {
     travelProviders.hotels = previousProviders;
+  }
+});
+
+test("excludes unknown-price options from recommendation combinations", async () => {
+  const account = await registerAccount();
+  const created = await request(app)
+    .post("/api/trips")
+    .set(authorization(account.token))
+    .send(validTrip);
+  const tripId = created.body.data.trip.id as string;
+  const previousHotels = travelProviders.hotels;
+  const demoHotels = previousHotels[0];
+  travelProviders.hotels = [
+    {
+      ...demoHotels,
+      search: async (input, filters, signal) =>
+        (await demoHotels.search(input, filters, signal)).map((option) => ({
+          ...option,
+          price: null,
+        })),
+    },
+  ];
+
+  try {
+    const response = await request(app)
+      .get(`/api/trips/${tripId}/recommendations`)
+      .set(authorization(account.token));
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body.data.recommendations, []);
+  } finally {
+    travelProviders.hotels = previousHotels;
   }
 });
 
