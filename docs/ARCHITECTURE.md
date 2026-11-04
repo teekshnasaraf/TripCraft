@@ -39,7 +39,9 @@ preferences, accommodation, and trip style locally. Submission calls
 `POST /api/trips`; the API requires an authenticated user and persists the trip.
 The protected `/trips/:tripId` workspace exposes owner-scoped hotel, flight,
 train, and destination demo searches, deterministic demo recommendations, and
-saved selections. Only a TripCraft demo catalogue is registered.
+saved selections. Only a TripCraft demo catalogue is registered in that
+workspace. A separate authenticated one-way flight-search API exists on the
+backend but is not connected to the workspace or recommendations.
 The development-only `/dev/design-system` preview remains excluded from
 production.
 
@@ -50,7 +52,8 @@ configures middleware and routes; `src/server.ts` connects optional persistence
 and starts the HTTP listener. Configuration and the Mongoose connection helper
 are in `src/config/`. Route, middleware, controller, service, model, and
 integration boundaries are intended to keep HTTP handling separate from
-business logic.
+business logic. A guarded Ignav adapter also provides the backend-only
+`POST /api/flights/search` endpoint; live requests are disabled by default.
 
 Implemented modules include environment/database configuration, CORS and JSON
 middleware, `GET /api/health`, auth and trip routes/controllers/services,
@@ -60,10 +63,15 @@ central safe error handling. User passwords are hashed with bcryptjs;
 password hashes are excluded from normal user queries and API DTOs. Access
 tokens are signed with `JWT_SECRET` and expire according to `JWT_EXPIRES_IN`.
 There are no refresh tokens, email verification, password recovery, or
-server-side token revocation. No actual hotel, airline, rail, or location
-provider integration is configured. Provider search and selection resolution
-run through the registry; the registry currently contains one clearly labelled
-demo adapter per category.
+server-side token revocation. No hotel, rail, or location provider integration
+is configured. Provider search and selection resolution run through the
+registry; the registry currently contains one clearly labelled demo adapter
+per category. Separately, `POST /api/flights/search` validates a one-way
+request and routes live calls through the Ignav usage manager. With live search
+disabled, development/test uses an explicitly marked empty mock response and
+production returns unavailable. The adapter uses Ignav's documented REST
+endpoint and `X-Api-Key` header, normalizes provider-supplied values, and does
+not request booking links.
 
 ## Frontend/backend communication
 
@@ -104,30 +112,36 @@ categories, offers, and the provider interface. Separate demo adapters exercise
 hotel, flight, train, and destination searches. They return only explicitly
 marked `demo` records; amounts are illustrative, ratings and availability are
 unknown, booking URLs are absent, and the response timestamp is not vendor
-freshness. Demo searches cover only fixture destinations/routes. No provider
-credential configuration exists and no vendor search endpoint is called.
+freshness. Demo searches cover only fixture destinations/routes. The registry
+does not call vendor endpoints. The separate Ignav adapter reads its credential
+from backend process environment and has made no live request in this
+milestone.
 
-Real integrations remain future work: select partners with authorized API
-access, verify terms and coverage, keep credentials server-side, normalize
-vendor responses, enforce request cancellation/timeouts and rate limits, and
-test responses against provider contracts before enabling a live source.
+The Ignav adapter has not made a live request in this milestone. Live
+activation and provider-response verification remain future work. Other
+integrations remain future work: select partners with authorized API access,
+verify terms and coverage, keep credentials server-side, normalize vendor
+responses, enforce request cancellation/timeouts and rate limits, and test
+responses against provider contracts before enabling a live source.
 
 ### External credentials and approvals
 
-The demo registry requires no hotel, airline, rail, mapping, or places API key.
-No live provider is connected, and there are no vendor-specific environment
-variables in the application today. A live rollout requires accounts and
-documented API/partner approval for each selected inventory source: hotel
+The demo registry requires no hotel, rail, mapping, or places API key. The
+Ignav adapter reads `IGNAV_API_KEY` only from backend process environment and
+uses `IGNAV_LIVE_SEARCH_ENABLED`, which defaults to `false`; mock development
+and test searches do not require the key. No live provider request was made
+for this implementation. A live rollout requires accounts and documented
+API/partner approval for each selected inventory source: hotel
 providers (MakeMyTrip, Goibibo, Booking.com, Agoda, or Cleartrip), flight
 booking/inventory providers (MakeMyTrip, Cleartrip, ixigo, EaseMyTrip, Goibibo,
 or participating airlines), and IRCTC or an authorised rail partner. A
 licensed places/attractions data source is needed for sourced discovery.
 Provider-supplied booking links and any affiliate redirects require permission
-under the relevant agreement. Exact secret names must be set only after those
-contracts are selected; store them on the backend, never in `VITE_*` variables.
-The current server configuration uses `MONGODB_URI` and `JWT_SECRET` for
-database-backed authenticated features; the frontend API location is configured
-with `VITE_API_BASE_URL`.
+under the relevant agreement. Store secrets on the backend, never in `VITE_*`
+variables. The current server configuration uses `MONGODB_URI`, `JWT_SECRET`,
+`IGNAV_API_KEY`, and `IGNAV_LIVE_SEARCH_ENABLED` for its respective
+database-backed, authentication, and guarded flight-search features; the
+frontend API location is configured with `VITE_API_BASE_URL`.
 
 ## Planned AI service architecture
 
@@ -172,7 +186,10 @@ equivalence, comparison, and budget optimisation remain future work.
 8. The protected workspace performs owner-scoped demo searches, stores
    server-resolved selection snapshots, and shows explicitly incomplete
    recommendation examples.
-9. In development only, `/dev/design-system` renders the component preview.
+9. An authenticated direct one-way search can use an empty mock response in
+   development/test or the Ignav adapter if an operator enables it; its cache
+   and usage records persist in MongoDB.
+10. In development only, `/dev/design-system` renders the component preview.
 
 ### Planned
 

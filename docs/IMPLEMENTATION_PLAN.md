@@ -9,8 +9,10 @@ implementation; preserve the history rather than replacing the plan.
 - **Current phase:** Phase 3 – Travel Discovery and Comparison.
 - **Overall status:** Phases 1–2 and the Step 6 provider-independent
   travel-workspace foundation are implemented. The current provider registry
-  is demo-only; authorized provider access and a real MongoDB Atlas connection
-  remain unverified.
+  is demo-only; Ignav connectivity was verified for two sample Indian routes,
+  Step 7A implements a disabled-by-default usage-management layer, and Step 7B
+  adds a guarded one-way adapter that has not been used for live requests.
+  Atlas remains unverified.
 - **Booking model:** TripCraft will link users to external booking platforms;
   TripCraft will not process bookings or payments.
 - **Implemented product surface:** Informational landing page; JWT-backed
@@ -20,7 +22,9 @@ implementation; preserve the history rather than replacing the plan.
   previews.
 - **Not implemented:** Atlas connectivity verification with real credentials,
   profile editing/deletion, password recovery, token refresh/revocation,
-  authorized live providers, vendor-backed prices/availability/ratings,
+  live Ignav activation and flight UI/recommendation integration (the backend
+  adapter is implemented but disabled by default and not live-verified),
+  vendor-backed prices/availability/ratings,
   cross-provider offer equivalence, complete trip estimates, AI, maps,
   booking, or payment.
 
@@ -194,7 +198,87 @@ implementation; preserve the history rather than replacing the plan.
   known-price demo hotel/transport combinations; Balanced Experience targets
   70% of the trip budget and unknown prices are excluded, never treated as
   zero. Phase 3 remains in progress for authorised live providers and
-  vendor-backed data; none is connected or claimed.
+  vendor-backed data. The trip workspace still uses only demo providers;
+  Step 7B adds a separate authenticated Ignav one-way search endpoint and
+  adapter, but live search is disabled by default and has not been live-tested.
+  Ignav connectivity was previously assessed with two isolated live searches;
+  Step 7A provides the usage guard.
+
+### STEP 7A – Ignav Flight Usage and Cost Protection
+
+- **Status:** Implemented as a pre-integration control layer. No Ignav client,
+  live flight provider, search endpoint, or flight UI is wired to it.
+- **Persistent accounting:** MongoDB singleton state tracks the estimated
+  confirmed usage, reserved billable requests, cache counters, blocked
+  requests, and last successful provider response. A separate operation
+  ledger records provider, operation, status, billability, response status,
+  timestamp, opaque reservation ID, and allowlisted route/search metadata.
+  The two previously assessed successful calls seed the ledger's initial
+  estimate only when the singleton state is first created. That estimate is
+  not fetched from Ignav and environment changes do not reset existing state.
+- **Reservation rules:** Each billable operation atomically reserves one slot
+  before calling its injected provider function, with a MongoDB atomic
+  hard-limit check. Only HTTP 200 confirms usage. Definitive non-200 responses
+  are recorded as failed and release the reservation. Network errors,
+  timeouts, process interruptions, and other ambiguous outcomes retain the
+  reservation and block identical searches for the cache window. Ledger errors
+  fail closed; no automatic retries are performed.
+- **Search cache and duplicate control:** Search parameters are recursively
+  canonicalized and hashed, so different material parameters cannot share an
+  entry. MongoDB stores successful responses for the configured TTL (30
+  minutes by default); expired values are deleted/ignored. A unique pending
+  cache record coalesces identical requests across backend instances.
+  Failures are not cached as successful values. An ambiguous request blocks
+  its identical key until its safety entry expires; its usage reservation is
+  not released by cache expiry.
+- **Rate and spend controls:** Per-user request buckets are stored in MongoDB
+  and expire automatically (default 10 requests/minute). The internal ceiling
+  defaults to 800 confirmed-plus-reserved requests. The configured initial
+  estimate is 2, yielding 798 estimated internal requests remaining. Live
+  operation execution is disabled by default.
+- **Configuration:** `IGNAV_FREE_ALLOWANCE` (1000),
+  `IGNAV_INTERNAL_LIMIT` (800), `IGNAV_INITIAL_USED` (2),
+  `IGNAV_CACHE_TTL_MINUTES` (30), `IGNAV_LIVE_SEARCH_ENABLED` (false),
+  `IGNAV_USER_RATE_LIMIT_PER_MINUTE` (10),
+  `IGNAV_REQUEST_TIMEOUT_MS` (30000), and
+  `IGNAV_USAGE_ADMIN_EMAILS` (empty by default). Usage admins are configured
+  by comma-separated account email. `IGNAV_API_KEY` belongs only in the
+  backend secret environment; the manager does not read or use it.
+- **Usage endpoint:** `GET /api/flights/usage` requires a valid bearer token,
+  MongoDB availability, and an email in `IGNAV_USAGE_ADMIN_EMAILS`. It returns
+  aggregate counts, the configured internal budget, cache/block counters,
+  enablement status, and last successful request time. It marks the balance
+  as not provider-verified and excludes credentials and raw request data.
+- **Verification:** Mock-only backend tests cover disabled mode, reservation
+  before provider invocation, cache hits/misses/expiry, 4xx/5xx accounting,
+  timeout ambiguity, hard-limit concurrency, duplicate coalescing, per-user
+  throttling, restricted usage reporting, persistence across a fresh backend
+  process, cache-key isolation, provider-error redaction, and unavailable-ledger
+  fail-closed behavior. Backend TypeScript production build and all 26 backend
+  tests pass; no frontend files or shared types changed.
+- **Runtime verification:** Started the production backend against a disposable
+  MongoDB instance, verified health/readiness and the usage endpoint over HTTP,
+  then restarted the backend against the same disposable database. Anonymous
+  access returned 401, an authenticated non-admin returned 403, and an
+  allowlisted admin received every expected usage field. Two identical
+  injected mock searches made one executor call and reported one cache hit,
+  one miss, one confirmed operation, and zero reservations; the state and
+  counters remained after restart. Runtime settings resolved to live search
+  disabled, allowance 1000, internal cap 800, initial estimate 2, and a
+  30-minute cache TTL. The disposable database was discarded; no configured
+  application database or user trip data was changed.
+- **Verification boundaries:** The 26-test suite is isolated integration
+  coverage using mock provider responses and ephemeral MongoDB. Runtime
+  verification exercised the local HTTP server and backend restart using the
+  same ephemeral database. The separate prior provider-connectivity assessment
+  made two live Ignav fare requests; this Step 7A verification made zero live
+  provider requests and consumed zero provider credits. Local usage values
+  remain estimates, not Ignav's authoritative account balance.
+- **Limitations:** No reconciliation API for comparing local estimates with
+  Ignav's authoritative balance exists. Reservations left by ambiguous outcomes
+  are intentionally conservative and require operational review. The manager
+  is not connected to any production flight search path; enabling its setting
+  alone does not integrate Ignav.
 
 ### PHASE 4 – Price Comparison Engine
 
@@ -328,7 +412,8 @@ implementation; preserve the history rather than replacing the plan.
 
 - **Completed tasks:** Phase 1 foundation, design system, and landing page;
   Phase 2 frontend/backend authentication and trip management; initial Step 6
-  provider-neutral demo search, selection, and planning workspace foundation.
+  provider-neutral demo search, selection, and planning workspace foundation;
+  Step 7A Ignav usage controls (disabled by default).
 - **In progress:** Phase 3 authorized provider integration and live data
   validation.
 - **Pending tasks:** Remaining Phase 2 account/retention work and live portions
@@ -419,12 +504,19 @@ implementation; preserve the history rather than replacing the plan.
 | 2026-11-03 | Implemented Phase 2 authentication and trip persistence: bcrypt/JWT registration/login/current-user APIs, Mongoose user/trip models, owner-scoped trip CRUD, strict validation, safe placeholder-aware MongoDB startup, session-scoped frontend auth, connected dashboard and trip creation, and isolated MongoMemoryServer/Supertest tests (6 passing). Frontend and backend builds passed. Browser E2E against a separate in-memory MongoDB verified registration, sign-in, trip creation/listing, cross-account isolation, logout/token clearing, and protected redirects; route/forms/password visibility and 390/768/1440 px layouts were also checked without overflow. Development preview route strings are absent from production bundles. The placeholder-only server correctly returned 503 for database-backed operations; no live Atlas connection was attempted. Trip edit/delete UI, recovery/refresh, and data-retention policy remain pending. |
 | 2026-11-03 | Implemented the Step 6 provider-independent discovery foundation: normalized hotel/flight/train/destination contracts, demo adapters, owner-scoped APIs, persisted selections, and a responsive workspace. Recovery audit confirmed the committed `travel.service.ts` was complete and buildable. Follow-up fixes exclude unpriced offers from maximum-budget results and accurately label per-journey prices. All 10 backend integration tests and root frontend/backend production builds passed. Browser checks exercised authentication, all four discovery searches, selection save/remove and persistence after reload, and 390/768/1440 px layouts without horizontal overflow or browser console errors. No vendor APIs or Atlas credentials are configured. |
 | 2026-11-05 | Re-audited the clean `main` checkout after the prior AI review was undone: the Step 6 foundation was already present in commit `8a5e153` and the latest commit only changed seven files. Hardened recommendation pricing so unknown/non-finite prices are excluded instead of counted as zero, defined deterministic budget-targeted recommendation explanations, added distinct demo amounts/durations to exercise flight/train sorting, and corrected trip-planner copy that incorrectly said recommendations were not connected. Backend TypeScript build and all 12 backend integration tests pass. Browser checks against an isolated ephemeral MongoDB covered registration, trip creation, recommendations, all four discovery tabs, category filters, price/duration sorting, selection persistence after reload and removal, and 390/768/1440 px layouts without horizontal overflow or console errors. Live provider APIs and Atlas persistence remain unverified and are not claimed. |
+| 2026-11-05 | Completed an isolated OBO Travel MCP connectivity/capability assessment using the official MCP TypeScript SDK installed only in a temporary directory. The Streamable HTTP/JSON-RPC 2.0 connection and authenticated `tools/list` succeeded with the server-only `X-OBO-Key` header and returned 13 tools. Definitions identify `search_hotels` for live availability/prices, `get_hotel_offers` for room offers, `get_offer_policies` for confirmed price/cancellation details, and `get_booking_link` for canonical booking links. One read-only search for Delhi, India (2026-12-10 to 11; one adult, one room, one-result limit) returned successfully with zero hotels; Indian inventory was not verified. No rate-limit or protocol error was reported. OBO API Terms of Use (v1.2, https://onebookingonline.com/api-terms), sections 8 and 16, prohibit a competing hotel price-comparison feed based on OBO data unless OBO grants written permission within the relevant scope. No OBO adapter or discovery behavior was changed; obtain written permission before any multi-provider comparison, and follow attribution, unchanged booking-link, result-freshness, and retention requirements if later approved. |
+| 2026-11-05 | Completed an Ignav flight API connectivity and Indian-route coverage assessment using only its documented REST endpoint and `X-Api-Key` header. Two documented one-way searches (HYD–BOM and MAA–DEL, 2026-12-10, market IN, one adult, economy) both returned HTTP 200, valid itineraries, INR prices marked verified, and UTC `observed_at` timestamps; the first five inspected results for each route included IndiGo (6E) nonstop flights with segment airport/time and duration data. No booking-link request was made: the itinerary handoff IDs were not retained, and another fare search would exceed the two-search assessment limit. Official docs state the API supports booking-link lookup. Ignav pricing docs state 1,000 free requests are one-time, then $2 per 1,000 successful requests; successful searches consume credits, failed 4xx/5xx requests do not, and an optional monthly spending limit is available. The integration remains unimplemented: no flight UI, adapter, or recommendations changed. |
+| 2026-11-05 | Implemented Step 7A's disabled-by-default Ignav usage guard with persistent MongoDB reservations/operation records, atomic global budget protection, canonicalized result caching, duplicate coalescing, per-user throttling, conservative ambiguous-outcome accounting, and an allowlisted authenticated usage endpoint. Added mock-only coverage for success/failure accounting, caching and parameter isolation, expiry, concurrency, rate limits, disabled mode, endpoint access, persistence, ledger failure, and redaction; all 26 backend tests and the backend production TypeScript build pass. No live Ignav request or credential use occurred; no flight adapter/UI or frontend behavior was added. |
+| 2026-11-05 | Runtime-verified Step 7A using the production backend process and a disposable MongoDB: health/readiness passed; `GET /api/flights/usage` returned 401 anonymously, 403 to a normal authenticated user, and 200 to an allowlisted admin with the complete safe summary. Identical mock searches coalesced through the persisted cache; confirmed usage, cache counters, and admin access persisted after restarting the backend against the same isolated database. Effective settings were live disabled, allowance 1000, internal limit 800, initial estimate 2, and 30-minute cache TTL. Backend tests passed 26/26, backend production TypeScript build passed, frontend TypeScript/production build passed, and `git diff --check` passed. No live Ignav calls were made; provider connectivity and authoritative balance were not tested in this verification. |
+| 2026-11-05 | Implemented Step 7B's authenticated backend-only one-way Ignav search adapter and request validator. Live calls use the documented `POST /api/fares/one-way` request, server-only `X-Api-Key`, normalized provider fields, and the Step 7A reservation/cache/rate-limit path. Development/test use an explicitly marked empty mock result while production remains unavailable unless the live switch is enabled. The isolated backend suite passed 37/37; mock-transport coverage includes mapping, auth/validation, cache/coalescing, parameter and mock/live separation, empty results, definitive failures, malformed responses, timeout reservations, disabled mode, exhausted capacity, and missing credentials. The frontend/backend production builds and `git diff --check` passed. Effective local configuration was live disabled, allowance 1000, internal limit 800, initial estimate 2, with the key present in process environment; its value was not displayed. The safe environment example contains placeholders, and the ignored local `.env` was not modified. No live Ignav request was made; provider connectivity and authoritative balance were not re-tested. Booking links, UI integration, and recommendation changes remain out of scope. |
 
 ## Next recommended implementation step
 
-Continue Phase 3 by selecting authorized providers, acquiring credentials
-through approved channels, implementing and testing real adapters, and then
-adding provider-backed result equivalence and complete price breakdowns. Do not
+Continue Phase 3 by verifying the disabled Ignav adapter in a controlled,
+authorized live environment before enabling it, then consider a flight UI only
+after provider terms, coverage, result freshness, and price semantics are
+reviewed. Booking-link integration, provider-backed recommendations, other
+provider adapters, and complete price breakdowns remain separate work. Do not
 enable live labels until those integrations and data claims are verified.
 Separately, configure deployment-managed Atlas/JWT secrets and resolve account
 recovery, revocation, trip edit/delete UI, retention, and erasure policies.

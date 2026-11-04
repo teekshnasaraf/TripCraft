@@ -212,6 +212,54 @@ availability is `unknown`. A retrieval timestamp identifies response
 generation only, not vendor data freshness. The demo catalog has fixtures for
 selected Jaipur and Goa routes/places only.
 
+### `POST /api/flights/search`
+
+Requires authentication and searches a one-way flight without creating or
+modifying a trip. The request accepts IATA airport codes, a future departure
+date, passenger counts, a cabin class, and an optional two-letter market.
+`returnDate` and unknown fields are rejected.
+
+```json
+{
+  "origin": "HYD",
+  "destination": "BOM",
+  "departureDate": "2030-07-01",
+  "market": "IN",
+  "adults": 1,
+  "children": 0,
+  "infantsInSeat": 0,
+  "infantsOnLap": 0,
+  "cabinClass": "economy"
+}
+```
+
+The endpoint currently uses an explicitly labelled empty mock response in
+development and test environments while live search is disabled. Production
+returns `503` until live search is explicitly enabled. When enabled, the
+backend sends only the documented one-way fare-search fields to
+`https://ignav.com/api/fares/one-way` using the server-only `IGNAV_API_KEY`
+header. Every live request passes through the persistent usage manager,
+cache, rate limit, and capacity reservation. No browser code receives the key.
+
+The response contains `provider`, `dataSource`, `dataMode`, normalized
+`itineraries`, and provider `observedAt`. Each itinerary preserves the
+provider's `ignavId`, segment airline/airport/time data, total amount,
+currency and verification status. Base fare, taxes, extra charges and fare
+conditions are `null` when the provider does not supply them; availability is
+reported as `unknown`. A successful empty provider result is returned as an
+empty itinerary array. Booking links are not requested or returned.
+
+Live integration remains disabled by default and was not exercised during
+implementation or automated tests. Mock responses do not establish inventory,
+prices, or provider connectivity.
+
+### `GET /api/flights/usage`
+
+Requires authentication and an email in the server-side
+`IGNAV_USAGE_ADMIN_EMAILS` allowlist. It returns safe local accounting, cache,
+limit, and enablement statistics; it does not expose credentials or represent
+Ignav's authoritative account balance.
+
 ### `POST /api/trips/:id/selections`
 
 Persists a selection by `category` and `optionId`; price or offer details
@@ -251,9 +299,12 @@ Errors use `{ "success": false, "message": "..." }`. Common statuses:
 | --- | --- |
 | `400` | Invalid JSON, validation error, unsupported field, or malformed trip id |
 | `401` | Missing, invalid, or expired authentication |
+| `403` | Authenticated user is not allowlisted for flight usage statistics |
 | `404` | Unknown route or trip not available to this user |
 | `409` | Duplicate account email |
-| `503` | Database/authentication unavailable or provider search/selection unavailable |
+| `429` | Flight API per-user rate limit or internal usage limit reached |
+| `502` | Upstream flight request failed or returned an invalid response |
+| `503` | Database/authentication unavailable, live search disabled, or provider outcome is uncertain |
 | `500` | Unexpected server error |
 
 Unknown routes return `404` JSON. Error logs contain error class names, not
@@ -262,12 +313,11 @@ request credentials, MongoDB URIs, or JWT values.
 ## Not implemented
 
 User profile editing/deletion, password recovery, email verification, refresh
-tokens, real provider search or offers, live availability/ratings, cross-provider
+tokens, hotel/train provider search, live availability/ratings, cross-provider
 property equivalence, complete cost estimates, itineraries, maps, booking, and
 payment are not implemented. Destination selections are saved and removed
-within a trip; there is no separate saved-destinations library. No vendor API
-keys or provider-specific environment variables are currently required. Live
-integrations require selected-provider accounts, authorised API/partner access,
-and approved provider-supplied booking links; exact credential variable names
-must be documented after partner contracts are selected. Do not put vendor
-secrets in frontend `VITE_*` configuration.
+within a trip; there is no separate saved-destinations library. The Ignav
+one-way backend adapter exists, but live search remains disabled and has not
+been verified in this milestone. Live use requires authorized provider access
+and a backend-only `IGNAV_API_KEY`; do not put vendor secrets in frontend
+`VITE_*` configuration.
